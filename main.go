@@ -11,6 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"web/models"
 )
 
 func main() {
@@ -24,18 +26,26 @@ func main() {
 		log.Warnf("Error loading .env file: %v", err)
 	}
 
-	dsn := getEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/academy?sslmode=disable")
+	dsn := getEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/course_api?sslmode=disable")
 	log.Info(dsn)
-	_, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	log.Info("Connected to database")
 
-	if err := runMigrations(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	// Apply GORM models to database
+	log.Info("Applying GORM models to database...")
+	if err := db.AutoMigrate(&models.Course{}, &models.Chapter{}, &models.Lesson{}); err != nil {
+		log.Fatalf("Failed to apply GORM models: %v", err)
 	}
-	log.Info("Migrations applied successfully")
+	log.Info("GORM models applied successfully")
+
+	// Run SQL migrations if needed
+	// if err := runMigrations(); err != nil {
+	// 	log.Fatalf("Failed to run migrations: %v", err)
+	// }
+	// log.Info("Migrations applied successfully")
 
 	router := gin.Default()
 
@@ -66,7 +76,7 @@ func runMigrations() error {
 
 	migrationsDir := filepath.Join(dir, "migrations")
 
-	dbString := getEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/academy?sslmode=disable")
+	dbString := getEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/course_api?sslmode=disable")
 	fmt.Println(dbString)
 	db, err := goose.OpenDBWithDriver("postgres", dbString)
 	if err != nil {

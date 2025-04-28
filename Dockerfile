@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o academy .
+RUN CGO_ENABLED=0 GOOS=linux go build -o web .
 
 FROM alpine:3.19
 
