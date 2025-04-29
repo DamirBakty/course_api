@@ -6,6 +6,10 @@ type CreateCourseRequest struct {
 	Name        string `json:"name" example:"Introduction to Go Programming"`
 	Description string `json:"description" example:"Learn the basics of Go programming language"`
 }
+type UpdateCourseRequest struct {
+	Name        string `json:"name" example:"Introduction to Go Programming"`
+	Description string `json:"description" example:"Learn the basics of Go programming language"`
+}
 
 type CourseResponse struct {
 	ID          uint      `json:"id,omitempty" example:"1"`

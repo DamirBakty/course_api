@@ -29,6 +29,9 @@ func (s *CourseService) CreateCourse(courseDTO schemas.CreateCourseRequest) (mod
 	if courseDTO.Name == "" {
 		return models.Course{}, errors.New("course name is required")
 	}
+	if courseDTO.Description == "" {
+		return models.Course{}, errors.New("course description is required")
+	}
 
 	// Convert DTO to model
 	course := models.Course{
@@ -39,16 +42,16 @@ func (s *CourseService) CreateCourse(courseDTO schemas.CreateCourseRequest) (mod
 	return s.repo.Create(course)
 }
 
-func (s *CourseService) UpdateCourse(course models.Course) error {
+func (s *CourseService) UpdateCourse(course models.Course, courseRequest schemas.UpdateCourseRequest) (models.Course, error) {
 	if course.ID == 0 {
-		return errors.New("course ID is required")
+		return models.Course{}, errors.New("course ID is required")
 	}
 
 	if course.Name == "" {
-		return errors.New("course name is required")
+		return models.Course{}, errors.New("course name is required")
 	}
 
-	return s.repo.Update(course)
+	return s.repo.Update(course, courseRequest)
 }
 
 func (s *CourseService) DeleteCourse(id uint) error {

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"web/config"
-	"web/models"
 	"web/schemas"
 	"web/services"
 )
@@ -97,9 +96,16 @@ func (h *CourseHandler) GetCourseByID(c *gin.Context) {
 		return
 	}
 
+	courseResponse := schemas.CourseResponse{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description,
+		CreatedAt:   course.CreatedAt,
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"error": false,
-		"data":  course,
+		"data":  courseResponse,
 	})
 }
 
@@ -157,7 +163,7 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Course ID"
-// @Param course body models.Course true "Course data"
+// @Param course body schemas.UpdateCourseRequest true "Course data"
 // @Success 200 {object} map[string]interface{} "Course updated successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Failure 404 {object} map[string]interface{} "Course not found"
@@ -173,8 +179,9 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 		return
 	}
 
-	var course models.Course
-	if err := c.ShouldBindJSON(&course); err != nil {
+	var courseRequest schemas.UpdateCourseRequest
+
+	if err := c.ShouldBindJSON(&courseRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "Invalid request body",
@@ -182,8 +189,28 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 		return
 	}
 
-	course.ID = uint(id)
-	err = h.service.UpdateCourse(course)
+	course, err := h.service.GetCourseByID(uint(id))
+	if err != nil {
+		status := http.StatusInternalServerError
+		if err.Error() == "course not found" {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   true,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	course, err = h.service.UpdateCourse(course, courseRequest)
+
+	courseResponse := schemas.CourseResponse{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description,
+		CreatedAt:   course.CreatedAt,
+	}
+
 	if err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "course not found or no changes made" {
@@ -198,8 +225,10 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"error":   false,
+		"data":    courseResponse,
 		"message": "Course updated successfully",
 	})
+	return
 }
 
 // DeleteCourse handles DELETE /api/courses/:id

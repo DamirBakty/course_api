@@ -3,7 +3,9 @@ package repos
 import (
 	"errors"
 	"gorm.io/gorm"
+	"time"
 	"web/models"
+	"web/schemas"
 )
 
 type CourseRepository struct {
@@ -49,21 +51,22 @@ func (r *CourseRepository) Create(course models.Course) (models.Course, error) {
 	return course, nil
 }
 
-func (r *CourseRepository) Update(course models.Course) error {
+func (r *CourseRepository) Update(course models.Course, courseRequest schemas.UpdateCourseRequest) (models.Course, error) {
 	result := r.DB.Model(&course).Updates(models.Course{
-		Name:        course.Name,
-		Description: course.Description,
+		Name:        courseRequest.Name,
+		Description: courseRequest.Description,
+		UpdatedAt:   time.Now(),
 	})
 
 	if result.Error != nil {
-		return result.Error
+		return models.Course{}, result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("course not found or no changes made")
+		return models.Course{}, errors.New("course not found or no changes made")
 	}
 
-	return nil
+	return course, nil
 }
 
 func (r *CourseRepository) Delete(id uint) error {
