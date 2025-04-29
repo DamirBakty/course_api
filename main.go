@@ -42,18 +42,27 @@ func main() {
 	}
 	log.Info("Migrations applied successfully")
 
-	// Initialize repository
+	// Initialize repositories
 	courseRepo := repos.NewCourseRepository(appConfig.GormDB)
+	chapterRepo := repos.NewChapterRepository(appConfig.GormDB)
+	lessonRepo := repos.NewLessonRepository(appConfig.GormDB)
 
-	// Initialize service
+	// Initialize services
 	courseService := services.NewCourseService(courseRepo)
+	chapterService := services.NewChapterService(chapterRepo)
+	lessonService := services.NewLessonService(lessonRepo)
 
 	// Initialize router
 	router := gin.Default()
 
 	// Register api
 	courseHandler := v1.NewCourseHandler(appConfig, courseService)
+	chapterHandler := v1.NewChapterHandler(appConfig, chapterService)
+	lessonHandler := v1.NewLessonHandler(appConfig, lessonService)
+
 	courseHandler.RegisterRoutes(router)
+	chapterHandler.RegisterRoutes(router)
+	lessonHandler.RegisterRoutes(router)
 
 	// Default route
 	router.GET("/", func(c *gin.Context) {
