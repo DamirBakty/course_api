@@ -1,13 +1,13 @@
 package v1
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"web/config"
 	"web/models"
+	"web/schemas"
 	"web/services"
-
-	"github.com/gin-gonic/gin"
 )
 
 // CourseHandler handles HTTP requests for courses
@@ -109,13 +109,19 @@ func (h *CourseHandler) GetCourseByID(c *gin.Context) {
 // @Tags courses
 // @Accept json
 // @Produce json
-// @Param course body models.Course true "Course data"
+// @Param course body schemas.CreateCourseRequest true "Course data"
 // @Success 201 {object} map[string]interface{} "Course created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Router /courses [post]
+// @example request - example payload
+//
+//	{
+//	  "name": "Introduction to Go Programming",
+//	  "description": "Learn the basics of Go programming language"
+//	}
 func (h *CourseHandler) CreateCourse(c *gin.Context) {
-	var course models.Course
-	if err := c.ShouldBindJSON(&course); err != nil {
+	var courseRequest schemas.CreateCourseRequest
+	if err := c.ShouldBindJSON(&courseRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "Invalid request body",
@@ -123,7 +129,7 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 		return
 	}
 
-	id, err := h.service.CreateCourse(course)
+	course, err := h.service.CreateCourse(courseRequest)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
@@ -131,12 +137,15 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 		})
 		return
 	}
-
+	courseResponse := schemas.CourseResponse{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description,
+		CreatedAt:   course.CreatedAt,
+	}
 	c.JSON(http.StatusCreated, gin.H{
-		"error": false,
-		"data": gin.H{
-			"id": id,
-		},
+		"error":   false,
+		"data":    courseResponse,
 		"message": "Course created successfully",
 	})
 }

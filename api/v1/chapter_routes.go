@@ -149,6 +149,13 @@ func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 // @Success 201 {object} map[string]interface{} "Chapter created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Router /courses/{id}/chapters [post]
+// @example request - example payload
+//
+//	{
+//	  "name": "Chapter 1: Getting Started",
+//	  "description": "Introduction to the course material",
+//	  "order": 1
+//	}
 func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 	courseIdStr := c.Param("id")
 	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)

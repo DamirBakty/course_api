@@ -72,8 +72,8 @@ func main() {
 	})
 
 	// Swagger documentation endpoint
-	url := httpSwagger.URL("/swagger/doc.json") // The URL pointing to API definition
-	router.GET("/swagger/*any", gin.WrapH(httpSwagger.Handler(url)))
+	url := httpSwagger.URL("/swagger/v1/doc.json") // The URL pointing to API definition
+	router.GET("/swagger/v1/*any", gin.WrapH(httpSwagger.Handler(url)))
 
 	log.Info("Starting server on :8080")
 	if err := router.Run(":8080"); err != nil {

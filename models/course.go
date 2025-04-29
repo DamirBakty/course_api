@@ -6,15 +6,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Course represents a course in the system
+// swagger:model
 type Course struct {
 	tableName   struct{}       `gorm:"table:course"`
-	ID          uint           `gorm:"primaryKey"`
-	Name        string         `gorm:"type:varchar(255);not null"`
-	Description string         `gorm:"type:text"`
-	Chapters    []Chapter      `gorm:"foreignKey:CourseID;constraint:OnDelete:CASCADE"`
-	CreatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
-	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	ID          uint           `gorm:"primaryKey" json:"id,omitempty" example:"1"`
+	Name        string         `gorm:"type:varchar(255);not null" json:"name" example:"Introduction to Go Programming"`
+	Description string         `gorm:"type:text" json:"description" example:"Learn the basics of Go programming language"`
+	Chapters    []Chapter      `gorm:"foreignKey:CourseID;constraint:OnDelete:CASCADE" json:"chapters,omitempty"`
+	CreatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"created_at,omitempty"`
+	UpdatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at,omitempty"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Course) TableName() string {

@@ -155,6 +155,13 @@ func (h *LessonHandler) GetLessonByID(c *gin.Context) {
 // @Success 201 {object} map[string]interface{} "Lesson created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Router /courses/{id}/chapters/{chapterId}/lessons [post]
+// @example request - example payload
+// {
+//   "name": "Lesson 1: Introduction",
+//   "description": "Overview of the chapter content",
+//   "content": "This lesson covers the basic concepts of the chapter.",
+//   "order": 1
+// }
 func (h *LessonHandler) CreateLesson(c *gin.Context) {
 	chapterIdStr := c.Param("chapterId")
 	chapterId, err := strconv.ParseUint(chapterIdStr, 10, 32)

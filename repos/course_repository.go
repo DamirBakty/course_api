@@ -40,13 +40,13 @@ func (r *CourseRepository) GetByID(id uint) (models.Course, error) {
 	return course, nil
 }
 
-func (r *CourseRepository) Create(course models.Course) (uint, error) {
+func (r *CourseRepository) Create(course models.Course) (models.Course, error) {
 	result := r.DB.Create(&course)
 	if result.Error != nil {
-		return 0, result.Error
+		return models.Course{}, result.Error
 	}
 
-	return course.ID, nil
+	return course, nil
 }
 
 func (r *CourseRepository) Update(course models.Course) error {

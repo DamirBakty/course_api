@@ -4,6 +4,7 @@ import (
 	"errors"
 	"web/models"
 	"web/repos"
+	"web/schemas"
 )
 
 type CourseService struct {
@@ -24,9 +25,15 @@ func (s *CourseService) GetCourseByID(id uint) (models.Course, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *CourseService) CreateCourse(course models.Course) (uint, error) {
-	if course.Name == "" {
-		return 0, errors.New("course name is required")
+func (s *CourseService) CreateCourse(courseDTO schemas.CreateCourseRequest) (models.Course, error) {
+	if courseDTO.Name == "" {
+		return models.Course{}, errors.New("course name is required")
+	}
+
+	// Convert DTO to model
+	course := models.Course{
+		Name:        courseDTO.Name,
+		Description: courseDTO.Description,
 	}
 
 	return s.repo.Create(course)
