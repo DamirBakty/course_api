@@ -19,3 +19,7 @@ type Chapter struct {
 	UpdatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
+
+func (Chapter) TableName() string {
+	return "chapter"
+}

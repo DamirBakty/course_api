@@ -2,18 +2,25 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"os"
+	"path/filepath"
+	"web/api/v1"
 
-	"web/models"
+	"web/config"
+	_ "web/docs"
+	"web/repos"
+	"web/services"
 )
+
+// @title Course API
+// @version 1.0
+// @description This is a course management API
+// @host localhost:8080
+// @BasePath /api/v1
 
 func main() {
 	log := logrus.New()
@@ -22,50 +29,47 @@ func main() {
 	})
 	log.Info("Starting application")
 
-	if err := godotenv.Load(); err != nil {
-		log.Warnf("Error loading .env file: %v", err)
-	}
-
-	dsn := getEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/course_api?sslmode=disable")
-	log.Info(dsn)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Load application configuration
+	appConfig, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
-	log.Info("Connected to database")
-
-	// Apply GORM models to database
-	log.Info("Applying GORM models to database...")
-	if err := db.AutoMigrate(&models.Course{}, &models.Chapter{}, &models.Lesson{}); err != nil {
-		log.Fatalf("Failed to apply GORM models: %v", err)
-	}
-	log.Info("GORM models applied successfully")
+	log.Info("Configuration loaded successfully")
 
 	// Run SQL migrations if needed
-	// if err := runMigrations(); err != nil {
-	// 	log.Fatalf("Failed to run migrations: %v", err)
-	// }
-	// log.Info("Migrations applied successfully")
+	if err := runMigrations(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+	log.Info("Migrations applied successfully")
 
+	// Initialize repository
+	courseRepo := repos.NewCourseRepository(appConfig.GormDB)
+
+	// Initialize service
+	courseService := services.NewCourseService(courseRepo)
+
+	// Initialize router
 	router := gin.Default()
 
+	// Register api
+	courseHandler := v1.NewCourseHandler(appConfig, courseService)
+	courseHandler.RegisterRoutes(router)
+
+	// Default route
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Hello World!",
 		})
 	})
 
+	// Swagger documentation endpoint
+	url := httpSwagger.URL("/swagger/doc.json") // The URL pointing to API definition
+	router.GET("/swagger/*any", gin.WrapH(httpSwagger.Handler(url)))
+
+	log.Info("Starting server on :8080")
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-}
-
-func getEnv(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
 }
 
 func runMigrations() error {
@@ -76,19 +80,20 @@ func runMigrations() error {
 
 	migrationsDir := filepath.Join(dir, "migrations")
 
-	dbString := getEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/course_api?sslmode=disable")
-	fmt.Println(dbString)
-	db, err := goose.OpenDBWithDriver("postgres", dbString)
+	// Load config to get DB connection
+	appConfig, err := config.LoadConfig()
 	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			fmt.Printf("Error closing DB: %v\n", err)
-		}
-	}()
 
-	if err := goose.Run("up", db, migrationsDir); err != nil {
+	// Get the SQL DB from AppConfig
+	db := appConfig.DB
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("failed to set dialect: %w", err)
+	}
+
+	if err := goose.Up(db, migrationsDir); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

@@ -19,3 +19,7 @@ type Lesson struct {
 	UpdatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
+
+func (Lesson) TableName() string {
+	return "lesson"
+}

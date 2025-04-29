@@ -1,38 +1,60 @@
 -- +goose Up
 
 -- Create Course table
-CREATE TABLE course (
-                         id SERIAL PRIMARY KEY,
-                         name VARCHAR(255) NOT NULL,
-                         description TEXT,
-                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+create table course
+(
+    id          bigserial
+        primary key,
+    name        varchar(255) not null,
+    description text,
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP,
+    deleted_at  timestamp with time zone
 );
 
-Create Chapter table
-CREATE TABLE chapter (
-                          id SERIAL PRIMARY KEY,
-                          name VARCHAR(255) NOT NULL,
-                          description TEXT,
-                          "order" INT NOT NULL,
-                          course_id INT NOT NULL,
-                          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                          FOREIGN KEY (course_id) REFERENCES course(id) ON DELETE CASCADE
+create index idx_course_deleted_at
+    on course (deleted_at);
+
+create table chapter
+(
+    id          bigserial
+        primary key,
+    name        varchar(255) not null,
+    description text,
+    "order"     bigint       not null,
+    course_id   bigint       not null
+        constraint fk_course_chapters
+            references course
+            on delete cascade,
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP,
+    deleted_at  timestamp with time zone
 );
 
--- Create Lesson table
-CREATE TABLE lesson (
-                         id SERIAL PRIMARY KEY,
-                         name VARCHAR(255) NOT NULL,
-                         description TEXT,
-                         content TEXT,
-                         "order" INT NOT NULL,
-                         chapter_id INT NOT NULL,
-                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                         FOREIGN KEY (chapter_id) REFERENCES chapter(id) ON DELETE CASCADE
+
+create index idx_chapter_deleted_at
+    on chapter (deleted_at);
+
+create table lesson
+(
+    id          bigserial
+        primary key,
+    name        varchar(255) not null,
+    description text,
+    content     text,
+    "order"     bigint       not null,
+    chapter_id  bigint       not null
+        constraint fk_chapter_lessons
+            references chapter
+            on delete cascade,
+    created_at  timestamp with time zone default CURRENT_TIMESTAMP,
+    updated_at  timestamp with time zone default CURRENT_TIMESTAMP,
+    deleted_at  timestamp with time zone
 );
+
+
+create index idx_lesson_deleted_at
+    on lesson (deleted_at);
 
 -- +goose Down
 DROP TABLE IF EXISTS lesson;

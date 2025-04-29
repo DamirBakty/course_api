@@ -16,3 +16,7 @@ type Course struct {
 	UpdatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
+
+func (Course) TableName() string {
+	return "course"
+}
