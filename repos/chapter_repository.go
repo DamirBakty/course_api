@@ -6,6 +6,9 @@ import (
 	"web/models"
 )
 
+// Ensure ChapterRepository implements ChapterRepositoryInterface
+var _ ChapterRepositoryInterface = (*ChapterRepository)(nil)
+
 type ChapterRepository struct {
 	DB *gorm.DB
 }

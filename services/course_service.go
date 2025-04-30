@@ -7,11 +7,14 @@ import (
 	"web/schemas"
 )
 
+// Ensure CourseService implements CourseServiceInterface
+var _ CourseServiceInterface = (*CourseService)(nil)
+
 type CourseService struct {
-	repo *repos.CourseRepository
+	repo repos.CourseRepositoryInterface
 }
 
-func NewCourseService(repo *repos.CourseRepository) *CourseService {
+func NewCourseService(repo repos.CourseRepositoryInterface) *CourseService {
 	return &CourseService{
 		repo: repo,
 	}

@@ -2,9 +2,9 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"strconv"
 	"web/config"
+	"web/middleware"
 	"web/schemas"
 	"web/services"
 )
@@ -47,17 +47,11 @@ func (h *CourseHandler) RegisterRoutes(router *gin.Engine) {
 func (h *CourseHandler) GetAllCourses(c *gin.Context) {
 	courses, err := h.service.GetAllCourses()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
+		middleware.RespondWithInternalServerError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"error": false,
-		"data":  courses,
-	})
+	middleware.RespondWithSuccess(c, courses, "")
 }
 
 // GetCourseByID handles GET /api/courses/:id
@@ -76,23 +70,17 @@ func (h *CourseHandler) GetCourseByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "Invalid course ID",
-		})
+		middleware.RespondWithBadRequest(c, "Invalid course ID")
 		return
 	}
 
 	course, err := h.service.GetCourseByID(uint(id))
 	if err != nil {
-		status := http.StatusInternalServerError
 		if err.Error() == "course not found" {
-			status = http.StatusNotFound
+			middleware.RespondWithNotFound(c, err.Error())
+		} else {
+			middleware.RespondWithInternalServerError(c, err.Error())
 		}
-		c.JSON(status, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
 		return
 	}
 
@@ -103,10 +91,7 @@ func (h *CourseHandler) GetCourseByID(c *gin.Context) {
 		CreatedAt:   course.CreatedAt,
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"error": false,
-		"data":  courseResponse,
-	})
+	middleware.RespondWithSuccess(c, courseResponse, "")
 }
 
 // CreateCourse handles POST /api/courses
@@ -128,19 +113,13 @@ func (h *CourseHandler) GetCourseByID(c *gin.Context) {
 func (h *CourseHandler) CreateCourse(c *gin.Context) {
 	var courseRequest schemas.CreateCourseRequest
 	if err := c.ShouldBindJSON(&courseRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "Invalid request body",
-		})
+		middleware.RespondWithBadRequest(c, "Invalid request body")
 		return
 	}
 
 	course, err := h.service.CreateCourse(courseRequest)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
+		middleware.RespondWithBadRequest(c, err.Error())
 		return
 	}
 	courseResponse := schemas.CourseResponse{
@@ -149,11 +128,7 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 		Description: course.Description,
 		CreatedAt:   course.CreatedAt,
 	}
-	c.JSON(http.StatusCreated, gin.H{
-		"error":   false,
-		"data":    courseResponse,
-		"message": "Course created successfully",
-	})
+	middleware.RespondWithCreated(c, courseResponse, "Course created successfully")
 }
 
 // UpdateCourse handles PUT /api/courses/:id
@@ -172,33 +147,24 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "Invalid course ID",
-		})
+		middleware.RespondWithBadRequest(c, "Invalid course ID")
 		return
 	}
 
 	var courseRequest schemas.UpdateCourseRequest
 
 	if err := c.ShouldBindJSON(&courseRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "Invalid request body",
-		})
+		middleware.RespondWithBadRequest(c, "Invalid request body")
 		return
 	}
 
 	course, err := h.service.GetCourseByID(uint(id))
 	if err != nil {
-		status := http.StatusInternalServerError
 		if err.Error() == "course not found" {
-			status = http.StatusNotFound
+			middleware.RespondWithNotFound(c, err.Error())
+		} else {
+			middleware.RespondWithInternalServerError(c, err.Error())
 		}
-		c.JSON(status, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
 		return
 	}
 
@@ -212,23 +178,15 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 	}
 
 	if err != nil {
-		status := http.StatusBadRequest
 		if err.Error() == "course not found or no changes made" {
-			status = http.StatusNotFound
+			middleware.RespondWithNotFound(c, err.Error())
+		} else {
+			middleware.RespondWithBadRequest(c, err.Error())
 		}
-		c.JSON(status, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"error":   false,
-		"data":    courseResponse,
-		"message": "Course updated successfully",
-	})
-	return
+	middleware.RespondWithSuccess(c, courseResponse, "Course updated successfully")
 }
 
 // DeleteCourse handles DELETE /api/courses/:id
@@ -247,28 +205,19 @@ func (h *CourseHandler) DeleteCourse(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "Invalid course ID",
-		})
+		middleware.RespondWithBadRequest(c, "Invalid course ID")
 		return
 	}
 
 	err = h.service.DeleteCourse(uint(id))
 	if err != nil {
-		status := http.StatusInternalServerError
 		if err.Error() == "course not found" {
-			status = http.StatusNotFound
+			middleware.RespondWithNotFound(c, err.Error())
+		} else {
+			middleware.RespondWithInternalServerError(c, err.Error())
 		}
-		c.JSON(status, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"error":   false,
-		"message": "Course deleted successfully",
-	})
+	middleware.RespondWithSuccess(c, nil, "Course deleted successfully")
 }

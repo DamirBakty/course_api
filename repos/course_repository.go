@@ -8,6 +8,9 @@ import (
 	"web/schemas"
 )
 
+// Ensure CourseRepository implements CourseRepositoryInterface
+var _ CourseRepositoryInterface = (*CourseRepository)(nil)
+
 type CourseRepository struct {
 	DB *gorm.DB
 }

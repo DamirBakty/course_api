@@ -12,6 +12,7 @@ import (
 
 	"web/config"
 	_ "web/docs"
+	"web/middleware"
 	"web/repos"
 	"web/services"
 )
@@ -55,6 +56,9 @@ func main() {
 	// Initialize router
 	router := gin.Default()
 
+	// Apply middleware
+	router.Use(middleware.ResponseMiddleware())
+
 	// Register api
 	courseHandler := v1.NewCourseHandler(appConfig, courseService)
 	chapterHandler := v1.NewChapterHandler(appConfig, chapterService)
@@ -66,9 +70,7 @@ func main() {
 
 	// Default route
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Hello World!",
-		})
+		middleware.RespondWithSuccess(c, nil, "Hello World!")
 	})
 
 	// Swagger documentation endpoint
