@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"web/config"
 	"web/models"
+	"web/schemas"
 	"web/services"
 
 	"github.com/gin-gonic/gin"
@@ -145,7 +146,7 @@ func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Course ID"
-// @Param chapter body models.Chapter true "Chapter data"
+// @Param chapter body schemas.ChapterRequest true "Chapter data"
 // @Success 201 {object} map[string]interface{} "Chapter created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Router /courses/{id}/chapters [post]
@@ -166,9 +167,8 @@ func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 		})
 		return
 	}
-
-	var chapter models.Chapter
-	if err := c.ShouldBindJSON(&chapter); err != nil {
+	var chapterRequest schemas.ChapterRequest
+	if err := c.ShouldBindJSON(&chapterRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "Invalid request body",
@@ -177,7 +177,12 @@ func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 	}
 
 	// Set the courseId from the URL path
-	chapter.CourseID = uint(courseId)
+	chapter := models.Chapter{
+		CourseID:    uint(courseId),
+		Name:        chapterRequest.Name,
+		Description: chapterRequest.Description,
+		Order:       chapterRequest.Order,
+	}
 
 	id, err := h.service.CreateChapter(chapter)
 	if err != nil {
@@ -231,8 +236,8 @@ func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
 		return
 	}
 
-	var chapter models.Chapter
-	if err := c.ShouldBindJSON(&chapter); err != nil {
+	var chapterRequest schemas.ChapterRequest
+	if err := c.ShouldBindJSON(&chapterRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "Invalid request body",
@@ -240,6 +245,11 @@ func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
 		return
 	}
 
+	chapter := models.Chapter{
+		Name:        chapterRequest.Name,
+		Description: chapterRequest.Description,
+		Order:       chapterRequest.Order,
+	}
 	chapter.ID = uint(id)
 	chapter.CourseID = uint(courseId)
 	err = h.service.UpdateChapter(chapter)
