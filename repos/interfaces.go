@@ -5,7 +5,6 @@ import (
 	"web/schemas"
 )
 
-// CourseRepositoryInterface defines the interface for course repository operations
 type CourseRepositoryInterface interface {
 	GetAll() ([]models.Course, error)
 	GetByID(id uint) (models.Course, error)
@@ -14,7 +13,6 @@ type CourseRepositoryInterface interface {
 	Delete(id uint) error
 }
 
-// ChapterRepositoryInterface defines the interface for chapter repository operations
 type ChapterRepositoryInterface interface {
 	GetAll() ([]models.Chapter, error)
 	GetByID(id uint) (models.Chapter, error)
@@ -24,7 +22,6 @@ type ChapterRepositoryInterface interface {
 	Delete(id uint) error
 }
 
-// LessonRepositoryInterface defines the interface for lesson repository operations
 type LessonRepositoryInterface interface {
 	GetAll() ([]models.Lesson, error)
 	GetByID(id uint) (models.Lesson, error)

@@ -5,7 +5,6 @@ import (
 	"web/schemas"
 )
 
-// CourseServiceInterface defines the interface for course service operations
 type CourseServiceInterface interface {
 	GetAllCourses() ([]models.Course, error)
 	GetCourseByID(id uint) (models.Course, error)
@@ -14,7 +13,6 @@ type CourseServiceInterface interface {
 	DeleteCourse(id uint) error
 }
 
-// ChapterServiceInterface defines the interface for chapter service operations
 type ChapterServiceInterface interface {
 	GetAllChapters() ([]models.Chapter, error)
 	GetChapterByID(id uint) (models.Chapter, error)
@@ -24,7 +22,6 @@ type ChapterServiceInterface interface {
 	DeleteChapter(id uint) error
 }
 
-// LessonServiceInterface defines the interface for lesson service operations
 type LessonServiceInterface interface {
 	GetAllLessons() ([]models.Lesson, error)
 	GetLessonByID(id uint) (models.Lesson, error)
