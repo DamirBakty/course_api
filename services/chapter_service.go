@@ -4,6 +4,7 @@ import (
 	"errors"
 	"web/models"
 	"web/repos"
+	"web/schemas"
 )
 
 type ChapterService struct {
@@ -16,11 +17,7 @@ func NewChapterService(repo *repos.ChapterRepository) *ChapterService {
 	}
 }
 
-func (s *ChapterService) GetAllChapters() ([]models.Chapter, error) {
-	return s.repo.GetAll()
-}
-
-func (s *ChapterService) GetChaptersByCourseID(courseID uint) ([]models.Chapter, error) {
+func (s *ChapterService) GetChaptersByCourseID(courseID uint) ([]schemas.ChapterResponse, error) {
 	if courseID == 0 {
 		return nil, errors.New("course ID is required")
 	}

@@ -60,7 +60,7 @@ func main() {
 	router.Use(middleware.ResponseMiddleware())
 
 	// Register api
-	courseHandler := v1.NewCourseHandler(appConfig, courseService)
+	courseHandler := v1.NewCourseHandler(appConfig, courseService, chapterService)
 	chapterHandler := v1.NewChapterHandler(appConfig, chapterService)
 	lessonHandler := v1.NewLessonHandler(appConfig, lessonService)
 

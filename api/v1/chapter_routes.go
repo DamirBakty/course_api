@@ -62,7 +62,7 @@ func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
 		return
 	}
 
-	chapters, err := h.service.GetChaptersByCourseID(uint(courseId))
+	chapterResponses, err := h.service.GetChaptersByCourseID(uint(courseId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   true,
@@ -73,7 +73,7 @@ func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"error": false,
-		"data":  chapters,
+		"data":  chapterResponses,
 	})
 }
 
@@ -306,7 +306,7 @@ func (h *ChapterHandler) DeleteChapter(c *gin.Context) {
 	}
 
 	// Verify that the chapter belongs to the specified course
-	chapter, err := h.service.GetChapterByID(uint(id))
+	chapter, err := h.GetChapterByID(uint(id))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "chapter not found" {

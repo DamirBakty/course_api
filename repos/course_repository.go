@@ -8,7 +8,6 @@ import (
 	"web/schemas"
 )
 
-// Ensure CourseRepository implements CourseRepositoryInterface
 var _ CourseRepositoryInterface = (*CourseRepository)(nil)
 
 type CourseRepository struct {
@@ -19,30 +18,6 @@ func NewCourseRepository(db *gorm.DB) *CourseRepository {
 	return &CourseRepository{
 		DB: db,
 	}
-}
-
-func (r *CourseRepository) GetAll() ([]models.Course, error) {
-	var courses []models.Course
-	result := r.DB.Find(&courses)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return courses, nil
-}
-
-func (r *CourseRepository) GetByID(id uint) (models.Course, error) {
-	var course models.Course
-	result := r.DB.First(&course, id)
-
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return course, errors.New("course not found")
-		}
-		return course, result.Error
-	}
-
-	return course, nil
 }
 
 func (r *CourseRepository) Create(course models.Course) (models.Course, error) {
@@ -84,4 +59,51 @@ func (r *CourseRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (r *CourseRepository) GetAll() ([]schemas.CourseResponse, error) {
+	var courseResponses []schemas.CourseResponse
+
+	subQuery := r.DB.Model(&models.Chapter{}).
+		Select("course_id, count(*) as chapters_count").
+		Group("course_id")
+
+	err := r.DB.Model(&models.Course{}).
+		Select("course.id, course.name, course.description, course.created_at, COALESCE(chapters_count, 0) as chapters_count").
+		Joins("LEFT JOIN (?) AS chapter_counts ON course.id = chapter_counts.course_id", subQuery).
+		Scan(&courseResponses).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return courseResponses, nil
+}
+
+func (r *CourseRepository) GetByID(id uint) (schemas.CourseResponse, error) {
+	var courseResponse schemas.CourseResponse
+
+	subQuery := r.DB.Model(&models.Chapter{}).
+		Select("course_id, count(*) as chapters_count").
+		Where("course_id = ?", id).
+		Group("course_id")
+
+	err := r.DB.Model(&models.Course{}).
+		Select("course.id, course.name, course.description, course.created_at, COALESCE(chapters_count, 0) as chapters_count").
+		Joins("LEFT JOIN (?) AS chapter_counts ON course.id = chapter_counts.course_id", subQuery).
+		Where("course.id = ?", id).
+		Scan(&courseResponse).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return courseResponse, errors.New("course not found")
+		}
+		return courseResponse, err
+	}
+
+	if courseResponse.ID == 0 {
+		return courseResponse, errors.New("course not found")
+	}
+
+	return courseResponse, nil
 }

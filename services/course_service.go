@@ -20,11 +20,11 @@ func NewCourseService(repo repos.CourseRepositoryInterface) *CourseService {
 	}
 }
 
-func (s *CourseService) GetAllCourses() ([]models.Course, error) {
-	return s.repo.GetAll()
-}
+func (s *CourseService) GetCourseByID(id uint) (schemas.CourseResponse, error) {
+	if id == 0 {
+		return schemas.CourseResponse{}, errors.New("course ID is required")
+	}
 
-func (s *CourseService) GetCourseByID(id uint) (models.Course, error) {
 	return s.repo.GetByID(id)
 }
 
@@ -53,7 +53,9 @@ func (s *CourseService) UpdateCourse(course models.Course, courseRequest schemas
 	if course.Name == "" {
 		return models.Course{}, errors.New("course name is required")
 	}
-
+	//courseResponse := schemas.CourseResponse{
+	//	ID:
+	//}
 	return s.repo.Update(course, courseRequest)
 }
 
@@ -63,4 +65,8 @@ func (s *CourseService) DeleteCourse(id uint) error {
 	}
 
 	return s.repo.Delete(id)
+}
+
+func (s *CourseService) GetAllCourses() ([]schemas.CourseResponse, error) {
+	return s.repo.GetAll()
 }

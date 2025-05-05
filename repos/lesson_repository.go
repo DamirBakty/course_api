@@ -6,7 +6,6 @@ import (
 	"web/models"
 )
 
-// Ensure LessonRepository implements LessonRepositoryInterface
 var _ LessonRepositoryInterface = (*LessonRepository)(nil)
 
 type LessonRepository struct {

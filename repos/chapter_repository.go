@@ -3,10 +3,11 @@ package repos
 import (
 	"errors"
 	"gorm.io/gorm"
+	"time"
 	"web/models"
+	"web/schemas"
 )
 
-// Ensure ChapterRepository implements ChapterRepositoryInterface
 var _ ChapterRepositoryInterface = (*ChapterRepository)(nil)
 
 type ChapterRepository struct {
@@ -19,24 +20,25 @@ func NewChapterRepository(db *gorm.DB) *ChapterRepository {
 	}
 }
 
-func (r *ChapterRepository) GetAll() ([]models.Chapter, error) {
+func (r *ChapterRepository) GetByCourseID(courseID uint) ([]schemas.ChapterResponse, error) {
 	var chapters []models.Chapter
-	result := r.DB.Find(&chapters)
+	result := r.DB.Where("course_id = ?", courseID).Order(`"order" ASC`).Find(&chapters)
 	if result.Error != nil {
 		return nil, result.Error
 	}
+	var chapterResponses []schemas.ChapterResponse
 
-	return chapters, nil
-}
-
-func (r *ChapterRepository) GetByCourseID(courseID uint) ([]models.Chapter, error) {
-	var chapters []models.Chapter
-	result := r.DB.Where("course_id = ?", courseID).Find(&chapters)
-	if result.Error != nil {
-		return nil, result.Error
+	for _, chapter := range chapters {
+		chapterResponses = append(chapterResponses, schemas.ChapterResponse{
+			ID:          chapter.ID,
+			Name:        chapter.Name,
+			Description: chapter.Description,
+			CreatedAt:   chapter.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:   chapter.UpdatedAt.Format(time.RFC3339),
+		})
 	}
 
-	return chapters, nil
+	return chapterResponses, nil
 }
 
 func (r *ChapterRepository) GetByID(id uint) (models.Chapter, error) {
