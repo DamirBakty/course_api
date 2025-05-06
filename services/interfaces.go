@@ -27,7 +27,7 @@ type ChapterServiceInterface interface {
 type LessonServiceInterface interface {
 	GetAllLessons() ([]models.Lesson, error)
 	GetLessonByID(id uint) (models.Lesson, error)
-	GetLessonsByChapterID(chapterID uint) ([]models.Lesson, error)
+	GetLessonsByChapterID(chapterID, courseID uint) ([]models.Lesson, error)
 	CreateLesson(lesson models.Lesson) (uint, error)
 	UpdateLesson(lesson models.Lesson) error
 	DeleteLesson(id uint) error

@@ -16,11 +16,7 @@ func NewLessonService(repo *repos.LessonRepository) *LessonService {
 	}
 }
 
-func (s *LessonService) GetAllLessons() ([]models.Lesson, error) {
-	return s.repo.GetAll()
-}
-
-func (s *LessonService) GetLessonsByChapterID(chapterID uint) ([]models.Lesson, error) {
+func (s *LessonService) GetLessonsByChapterID(chapterID, courseID uint) ([]models.Lesson, error) {
 	if chapterID == 0 {
 		return nil, errors.New("chapter ID is required")
 	}
@@ -34,6 +30,15 @@ func (s *LessonService) GetLessonByID(id uint) (models.Lesson, error) {
 func (s *LessonService) CreateLesson(lesson models.Lesson) (uint, error) {
 	if lesson.Name == "" {
 		return 0, errors.New("lesson name is required")
+	}
+	if lesson.Description == "" {
+		return 0, errors.New("lesson description is required")
+	}
+	if lesson.Content == "" {
+		return 0, errors.New("lesson content is required")
+	}
+	if lesson.Order == 0 {
+		return 0, errors.New("lesson order is required")
 	}
 
 	if lesson.ChapterID == 0 {

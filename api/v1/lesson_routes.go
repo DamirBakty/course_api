@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"web/config"
 	"web/models"
+	"web/schemas"
 	"web/services"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +57,17 @@ func (h *LessonHandler) RegisterRoutes(router *gin.Engine) {
 // @Router /courses/{id}/chapters/{chapterId}/lessons [get]
 func (h *LessonHandler) GetAllLessons(c *gin.Context) {
 	chapterIdStr := c.Param("chapterId")
+	courseIdStr := c.Param("id")
+	courseID, err := strconv.ParseUint(courseIdStr, 10, 32)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Invalid course ID",
+		})
+		return
+	}
+
 	chapterId, err := strconv.ParseUint(chapterIdStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -65,7 +77,7 @@ func (h *LessonHandler) GetAllLessons(c *gin.Context) {
 		return
 	}
 
-	lessons, err := h.service.GetLessonsByChapterID(uint(chapterId))
+	lessons, err := h.service.GetLessonsByChapterID(uint(chapterId), uint(courseID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   true,
@@ -151,17 +163,18 @@ func (h *LessonHandler) GetLessonByID(c *gin.Context) {
 // @Produce json
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
-// @Param lesson body models.Lesson true "Lesson data"
+// @Param lesson body schemas.LessonRequest true "Lesson data"
 // @Success 201 {object} map[string]interface{} "Lesson created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Router /courses/{id}/chapters/{chapterId}/lessons [post]
 // @example request - example payload
-// {
-//   "name": "Lesson 1: Introduction",
-//   "description": "Overview of the chapter content",
-//   "content": "This lesson covers the basic concepts of the chapter.",
-//   "order": 1
-// }
+//
+//	{
+//	  "name": "Lesson 1: Introduction",
+//	  "description": "Overview of the chapter content",
+//	  "content": "This lesson covers the basic concepts of the chapter.",
+//	  "order": 1
+//	}
 func (h *LessonHandler) CreateLesson(c *gin.Context) {
 	chapterIdStr := c.Param("chapterId")
 	chapterId, err := strconv.ParseUint(chapterIdStr, 10, 32)
@@ -173,17 +186,21 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 		return
 	}
 
-	var lesson models.Lesson
-	if err := c.ShouldBindJSON(&lesson); err != nil {
+	var lessonRequest schemas.LessonRequest
+	if err := c.ShouldBindJSON(&lessonRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "Invalid request body",
 		})
 		return
 	}
-
-	// Set the chapterId from the URL path
-	lesson.ChapterID = uint(chapterId)
+	lesson := models.Lesson{
+		Name:        lessonRequest.Name,
+		Description: lessonRequest.Description,
+		Content:     lessonRequest.Content,
+		Order:       lessonRequest.Order,
+		ChapterID:   uint(chapterId),
+	}
 
 	id, err := h.service.CreateLesson(lesson)
 	if err != nil {
