@@ -6,11 +6,11 @@ import (
 )
 
 type CourseServiceInterface interface {
-	GetAllCourses() ([]schemas.CourseResponse, error)
+	GetAllCourses() ([]schemas.CourseResponseWithChaptersCount, error)
 	GetCourseByID(id uint) (models.Course, error)
-	GetCourseByIDWithChapterCount(id uint) (schemas.CourseResponse, error)
+	GetCourseByIDWithChapterCount(id uint) (schemas.CourseResponseWithChaptersCount, error)
 	CreateCourse(courseDTO schemas.CreateCourseRequest) (schemas.CourseResponse, error)
-	UpdateCourse(course models.Course, courseRequest schemas.UpdateCourseRequest) (models.Course, error)
+	UpdateCourse(course models.Course, courseRequest schemas.UpdateCourseRequest) (schemas.CourseResponse, error)
 	DeleteCourse(id uint) error
 }
 

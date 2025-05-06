@@ -14,49 +14,69 @@ type CourseService struct {
 	repo repos.CourseRepositoryInterface
 }
 
+func (s *CourseService) GetCourseByIDWithChapterCount(id uint) (schemas.CourseResponseWithChaptersCount, error) {
+	return s.repo.GetByIDWithChaptersCount(id)
+}
+
 func NewCourseService(repo repos.CourseRepositoryInterface) *CourseService {
 	return &CourseService{
 		repo: repo,
 	}
 }
 
-func (s *CourseService) GetCourseByID(id uint) (schemas.CourseResponse, error) {
+func (s *CourseService) GetCourseByID(id uint) (models.Course, error) {
 	if id == 0 {
-		return schemas.CourseResponse{}, errors.New("course ID is required")
+		return models.Course{}, errors.New("course ID is required")
 	}
 
 	return s.repo.GetByID(id)
 }
 
-func (s *CourseService) CreateCourse(courseDTO schemas.CreateCourseRequest) (models.Course, error) {
-	if courseDTO.Name == "" {
-		return models.Course{}, errors.New("course name is required")
+func (s *CourseService) CreateCourse(courseRequest schemas.CreateCourseRequest) (schemas.CourseResponse, error) {
+	if courseRequest.Name == "" {
+		return schemas.CourseResponse{}, errors.New("course name is required")
 	}
-	if courseDTO.Description == "" {
-		return models.Course{}, errors.New("course description is required")
+	if courseRequest.Description == "" {
+		return schemas.CourseResponse{}, errors.New("course description is required")
 	}
 
 	// Convert DTO to model
 	course := models.Course{
-		Name:        courseDTO.Name,
-		Description: courseDTO.Description,
+		Name:        courseRequest.Name,
+		Description: courseRequest.Description,
 	}
-
-	return s.repo.Create(course)
+	course, err := s.repo.Create(course)
+	if err != nil {
+		return schemas.CourseResponse{}, err
+	}
+	courseResponse := schemas.CourseResponse{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description,
+		CreatedAt:   course.CreatedAt,
+	}
+	return courseResponse, nil
 }
 
-func (s *CourseService) UpdateCourse(course models.Course, courseRequest schemas.UpdateCourseRequest) (models.Course, error) {
+func (s *CourseService) UpdateCourse(course models.Course, courseRequest schemas.UpdateCourseRequest) (schemas.CourseResponse, error) {
 	if course.ID == 0 {
-		return models.Course{}, errors.New("course ID is required")
+		return schemas.CourseResponse{}, errors.New("course ID is required")
 	}
 
 	if course.Name == "" {
-		return models.Course{}, errors.New("course name is required")
+		return schemas.CourseResponse{}, errors.New("course name is required")
 	}
-	//courseResponse := schemas.CourseResponse{
-	//	ID:
-	//}
-	return s.repo.Update(course, courseRequest)
+	course, err := s.repo.Update(course, courseRequest)
+	if err != nil {
+		return schemas.CourseResponse{}, err
+	}
+	courseResponse := schemas.CourseResponse{
+		ID:          course.ID,
+		Name:        course.Name,
+		Description: course.Description,
+		CreatedAt:   course.CreatedAt,
+	}
+	return courseResponse, nil
 }
 
 func (s *CourseService) DeleteCourse(id uint) error {
@@ -67,6 +87,6 @@ func (s *CourseService) DeleteCourse(id uint) error {
 	return s.repo.Delete(id)
 }
 
-func (s *CourseService) GetAllCourses() ([]schemas.CourseResponse, error) {
+func (s *CourseService) GetAllCourses() ([]schemas.CourseResponseWithChaptersCount, error) {
 	return s.repo.GetAll()
 }

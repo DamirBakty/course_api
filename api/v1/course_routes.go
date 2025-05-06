@@ -112,18 +112,10 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 		return
 	}
 
-	course, err := h.service.CreateCourse(courseRequest)
+	courseResponse, err := h.service.CreateCourse(courseRequest)
 	if err != nil {
 		middleware.RespondWithBadRequest(c, err.Error())
 		return
-	}
-
-	courseResponse := schemas.CourseResponse{
-		ID:            course.ID,
-		Name:          course.Name,
-		Description:   course.Description,
-		CreatedAt:     course.CreatedAt,
-		ChaptersCount: 0,
 	}
 
 	middleware.RespondWithCreated(c, courseResponse, "Course created successfully")
@@ -166,19 +158,13 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 		return
 	}
 
-	course, err = h.service.UpdateCourse(course, courseRequest)
+	courseResponse, err := h.service.UpdateCourse(course, courseRequest)
 	if err != nil {
 		if err.Error() == "course not found or no changes made" {
 			middleware.RespondWithNotFound(c, err.Error())
 		} else {
 			middleware.RespondWithBadRequest(c, err.Error())
 		}
-		return
-	}
-
-	courseResponse, err := h.service.GetCourseByIDWithChapterCount(course.ID)
-	if err != nil {
-		middleware.RespondWithInternalServerError(c, err.Error())
 		return
 	}
 

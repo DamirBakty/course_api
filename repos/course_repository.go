@@ -61,8 +61,8 @@ func (r *CourseRepository) Delete(id uint) error {
 	return nil
 }
 
-func (r *CourseRepository) GetAll() ([]schemas.CourseResponse, error) {
-	var courseResponses []schemas.CourseResponse
+func (r *CourseRepository) GetAll() ([]schemas.CourseResponseWithChaptersCount, error) {
+	var courseResponses []schemas.CourseResponseWithChaptersCount
 
 	subQuery := r.DB.Model(&models.Chapter{}).
 		Select("course_id, count(*) as chapters_count").
@@ -80,8 +80,22 @@ func (r *CourseRepository) GetAll() ([]schemas.CourseResponse, error) {
 	return courseResponses, nil
 }
 
-func (r *CourseRepository) GetByID(id uint) (schemas.CourseResponse, error) {
-	var courseResponse schemas.CourseResponse
+func (r *CourseRepository) GetByID(id uint) (models.Course, error) {
+	var course models.Course
+	err := r.DB.First(&course, id).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return course, errors.New("course not found")
+		}
+		return course, err
+	}
+
+	return course, nil
+}
+
+func (r *CourseRepository) GetByIDWithChaptersCount(id uint) (schemas.CourseResponseWithChaptersCount, error) {
+	var courseResponse schemas.CourseResponseWithChaptersCount
 
 	subQuery := r.DB.Model(&models.Chapter{}).
 		Select("course_id, count(*) as chapters_count").

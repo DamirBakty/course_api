@@ -6,11 +6,12 @@ import (
 )
 
 type CourseRepositoryInterface interface {
-	GetAll() ([]schemas.CourseResponse, error)
-	GetByID(id uint) (schemas.CourseResponse, error)
+	GetAll() ([]schemas.CourseResponseWithChaptersCount, error)
+	GetByID(id uint) (models.Course, error)
 	Create(course models.Course) (models.Course, error)
 	Update(course models.Course, courseRequest schemas.UpdateCourseRequest) (models.Course, error)
 	Delete(id uint) error
+	GetByIDWithChaptersCount(id uint) (schemas.CourseResponseWithChaptersCount, error)
 }
 
 type ChapterRepositoryInterface interface {

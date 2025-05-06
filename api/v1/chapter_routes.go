@@ -305,8 +305,7 @@ func (h *ChapterHandler) DeleteChapter(c *gin.Context) {
 		return
 	}
 
-	// Verify that the chapter belongs to the specified course
-	chapter, err := h.GetChapterByID(uint(id))
+	chapter, err := h.service.GetChapterByID(uint(id))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "chapter not found" {
