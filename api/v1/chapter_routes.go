@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"web/config"
@@ -11,13 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ChapterHandler handles HTTP requests for chapters
 type ChapterHandler struct {
 	app     *config.AppConfig
 	service *services.ChapterService
 }
 
-// NewChapterHandler creates a new chapter handler
 func NewChapterHandler(app *config.AppConfig, service *services.ChapterService) *ChapterHandler {
 	return &ChapterHandler{
 		app:     app,
@@ -25,7 +24,6 @@ func NewChapterHandler(app *config.AppConfig, service *services.ChapterService) 
 	}
 }
 
-// RegisterRoutes registers chapter api to the router
 func (h *ChapterHandler) RegisterRoutes(router *gin.Engine) {
 	courseGroup := router.Group("/api/v1/courses")
 	{
@@ -54,6 +52,7 @@ func (h *ChapterHandler) RegisterRoutes(router *gin.Engine) {
 func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
 	courseIdStr := c.Param("id")
 	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)
+	fmt.Println(courseId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
@@ -92,7 +91,7 @@ func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
 // @Router /courses/{id}/chapters/{chapterId} [get]
 func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 	courseIdStr := c.Param("id")
-	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)
+	courseID, err := strconv.ParseUint(courseIdStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
@@ -111,7 +110,7 @@ func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 		return
 	}
 
-	chapter, err := h.service.GetChapterByID(uint(id))
+	chapter, err := h.service.GetChapterByIDWithLessonsCount(uint(id), uint(courseID))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "chapter not found" {
@@ -120,15 +119,6 @@ func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 		c.JSON(status, gin.H{
 			"error":   true,
 			"message": err.Error(),
-		})
-		return
-	}
-
-	// Verify that the chapter belongs to the specified course
-	if chapter.CourseID != uint(courseId) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   true,
-			"message": "Chapter not found for this course",
 		})
 		return
 	}
@@ -210,7 +200,7 @@ func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 // @Produce json
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
-// @Param chapter body models.Chapter true "Chapter data"
+// @Param chapter body schemas.ChapterRequest true "Chapter data"
 // @Success 200 {object} map[string]interface{} "Chapter updated successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Failure 404 {object} map[string]interface{} "Chapter not found"
@@ -305,7 +295,7 @@ func (h *ChapterHandler) DeleteChapter(c *gin.Context) {
 		return
 	}
 
-	chapter, err := h.service.GetChapterByID(uint(id))
+	chapter, err := h.service.GetChapterByID(uint(id), uint(courseId))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "chapter not found" {

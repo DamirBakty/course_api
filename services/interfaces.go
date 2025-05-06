@@ -16,8 +16,8 @@ type CourseServiceInterface interface {
 
 type ChapterServiceInterface interface {
 	GetAllChapters() ([]models.Chapter, error)
-	GetChapterByID(id uint) (models.Chapter, error)
-	GetChaptersByCourseID(courseID uint) ([]models.Chapter, error)
+	GetChapterByID(id uint) (schemas.ChapterResponseWithLessonsCount, error)
+	GetChaptersByCourseID(courseID uint) ([]schemas.ChapterResponseWithLessonsCount, error)
 	CountChaptersByCourseID(courseID uint) (int, error)
 	CreateChapter(chapter models.Chapter) (uint, error)
 	UpdateChapter(chapter models.Chapter) error

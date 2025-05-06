@@ -15,8 +15,9 @@ type CourseRepositoryInterface interface {
 }
 
 type ChapterRepositoryInterface interface {
-	GetByID(id uint) (models.Chapter, error)
-	GetByCourseID(courseID uint) ([]schemas.ChapterResponse, error)
+	GetByID(id, courseId uint) (models.Chapter, error)
+	GetByIDWithLessonsCount(id uint, courseID uint) (schemas.ChapterResponseWithLessonsCount, error)
+	GetByCourseID(courseID uint) ([]schemas.ChapterResponseWithLessonsCount, error)
 	Create(chapter models.Chapter) (uint, error)
 	Update(chapter models.Chapter) error
 	Delete(id uint) error

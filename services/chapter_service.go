@@ -17,15 +17,19 @@ func NewChapterService(repo *repos.ChapterRepository) *ChapterService {
 	}
 }
 
-func (s *ChapterService) GetChaptersByCourseID(courseID uint) ([]schemas.ChapterResponse, error) {
+func (s *ChapterService) GetChaptersByCourseID(courseID uint) ([]schemas.ChapterResponseWithLessonsCount, error) {
 	if courseID == 0 {
 		return nil, errors.New("course ID is required")
 	}
 	return s.repo.GetByCourseID(courseID)
 }
 
-func (s *ChapterService) GetChapterByID(id uint) (models.Chapter, error) {
-	return s.repo.GetByID(id)
+func (s *ChapterService) GetChapterByID(id, courseId uint) (models.Chapter, error) {
+	return s.repo.GetByID(id, courseId)
+}
+
+func (s *ChapterService) GetChapterByIDWithLessonsCount(id, courseID uint) (schemas.ChapterResponseWithLessonsCount, error) {
+	return s.repo.GetByIDWithLessonsCount(id, courseID)
 }
 
 func (s *ChapterService) CreateChapter(chapter models.Chapter) (uint, error) {

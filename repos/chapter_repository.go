@@ -3,7 +3,6 @@ package repos
 import (
 	"errors"
 	"gorm.io/gorm"
-	"time"
 	"web/models"
 	"web/schemas"
 )
@@ -20,30 +19,29 @@ func NewChapterRepository(db *gorm.DB) *ChapterRepository {
 	}
 }
 
-func (r *ChapterRepository) GetByCourseID(courseID uint) ([]schemas.ChapterResponse, error) {
-	var chapters []models.Chapter
-	result := r.DB.Where("course_id = ?", courseID).Order(`"order" ASC`).Find(&chapters)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	var chapterResponses []schemas.ChapterResponse
+func (r *ChapterRepository) GetByCourseID(courseID uint) ([]schemas.ChapterResponseWithLessonsCount, error) {
+	var chapterResponses []schemas.ChapterResponseWithLessonsCount
 
-	for _, chapter := range chapters {
-		chapterResponses = append(chapterResponses, schemas.ChapterResponse{
-			ID:          chapter.ID,
-			Name:        chapter.Name,
-			Description: chapter.Description,
-			CreatedAt:   chapter.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:   chapter.UpdatedAt.Format(time.RFC3339),
-		})
+	subQuery := r.DB.Model(&models.Lesson{}).
+		Select("chapter_id, count(*) as lessons_count").
+		Group("chapter_id")
+
+	err := r.DB.Model(&models.Chapter{}).
+		Select("chapter.id, chapter.name, chapter.description, chapter.created_at, chapter.updated_at, COALESCE(lessons_count, 0) as lessons_count").
+		Joins("LEFT JOIN (?) AS lesson_counts ON chapter.id = lesson_counts.chapter_id", subQuery).
+		Where("chapter.course_id = ?", courseID).
+		Order(`"order" ASC`).
+		Scan(&chapterResponses).Error
+
+	if err != nil {
+		return nil, err
 	}
 
 	return chapterResponses, nil
 }
-
-func (r *ChapterRepository) GetByID(id uint) (models.Chapter, error) {
+func (r *ChapterRepository) GetByID(id, courseId uint) (models.Chapter, error) {
 	var chapter models.Chapter
-	result := r.DB.First(&chapter, id)
+	result := r.DB.Where("course_id = ? and id = ?", courseId, id).First(&chapter)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -53,6 +51,34 @@ func (r *ChapterRepository) GetByID(id uint) (models.Chapter, error) {
 	}
 
 	return chapter, nil
+}
+
+func (r *ChapterRepository) GetByIDWithLessonsCount(id, courseID uint) (schemas.ChapterResponseWithLessonsCount, error) {
+	var chapterResponse schemas.ChapterResponseWithLessonsCount
+
+	subQuery := r.DB.Model(&models.Lesson{}).
+		Select("chapter_id, count(*) as lessons_count").
+		Where("chapter_id = ?", id).
+		Group("chapter_id")
+
+	err := r.DB.Model(&models.Chapter{}).
+		Select("chapter.id, chapter.name, chapter.description, chapter.created_at, chapter.updated_at, COALESCE(lessons_count, 0) as lessons_count").
+		Joins("LEFT JOIN (?) AS lesson_counts ON chapter.id = lesson_counts.chapter_id", subQuery).
+		Where("chapter.id = ? and chapter.course_id = ?", id, courseID).
+		Scan(&chapterResponse).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return chapterResponse, errors.New("chapter not found")
+		}
+		return chapterResponse, err
+	}
+
+	if chapterResponse.ID == 0 {
+		return chapterResponse, errors.New("chapter not found")
+	}
+
+	return chapterResponse, nil
 }
 
 func (r *ChapterRepository) Create(chapter models.Chapter) (uint, error) {
