@@ -2,13 +2,15 @@ package services
 
 import (
 	"errors"
+	"time"
 	"web/models"
 	"web/repos"
 	"web/schemas"
 )
 
 type ChapterService struct {
-	repo *repos.ChapterRepository
+	repo       *repos.ChapterRepository
+	courseRepo *repos.CourseRepository
 }
 
 func NewChapterService(repo *repos.ChapterRepository) *ChapterService {
@@ -32,13 +34,27 @@ func (s *ChapterService) GetChapterByIDWithLessonsCount(id, courseID uint) (sche
 	return s.repo.GetByIDWithLessonsCount(id, courseID)
 }
 
-func (s *ChapterService) CreateChapter(chapter models.Chapter) (uint, error) {
-	if chapter.Name == "" {
+func (s *ChapterService) CreateChapter(chapterRequest schemas.ChapterRequest, courseID uint) (uint, error) {
+	course, err := s.courseRepo.GetByID(courseID)
+	if err != nil {
+		return 0, err
+	}
+	chapter := models.Chapter{
+		Name:        chapterRequest.Name,
+		Description: chapterRequest.Description,
+		Order:       chapterRequest.Order,
+		CourseID:    course.ID,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	if chapterRequest.Name == "" {
 		return 0, errors.New("chapter name is required")
 	}
-
-	if chapter.CourseID == 0 {
-		return 0, errors.New("course ID is required")
+	if chapterRequest.Description == "" {
+		return 0, errors.New("chapter description is required")
+	}
+	if chapterRequest.Order == 0 {
+		return 0, errors.New("chapter order is required")
 	}
 
 	return s.repo.Create(chapter)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"web/models"
+	"web/schemas"
 )
 
 var _ LessonRepositoryInterface = (*LessonRepository)(nil)
@@ -18,9 +19,16 @@ func NewLessonRepository(db *gorm.DB) *LessonRepository {
 	}
 }
 
-func (r *LessonRepository) GetAll() ([]models.Lesson, error) {
-	var lessons []models.Lesson
-	result := r.DB.Find(&lessons)
+func (r *LessonRepository) GetByChapterID(courseID, chapterID uint) ([]schemas.LessonResponse, error) {
+	var lessons []schemas.LessonResponse
+	result := r.DB.Model(&models.Lesson{}).
+		Select("lesson.id, lesson.name, lesson.description, lesson.content, lesson.order, lesson.created_at").
+		Joins("INNER JOIN chapter ON chapter.id = lesson.chapter_id").
+		Where("chapter_id = ? and chapter.course_id = ?", chapterID, courseID).
+		Order(
+			"lesson.order ASC",
+		).
+		Find(&lessons)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -28,19 +36,13 @@ func (r *LessonRepository) GetAll() ([]models.Lesson, error) {
 	return lessons, nil
 }
 
-func (r *LessonRepository) GetByChapterID(chapterID uint) ([]models.Lesson, error) {
-	var lessons []models.Lesson
-	result := r.DB.Where("chapter_id = ?", chapterID).Find(&lessons)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return lessons, nil
-}
-
-func (r *LessonRepository) GetByID(id uint) (models.Lesson, error) {
+func (r *LessonRepository) GetByID(courseID, chapterID, id uint) (models.Lesson, error) {
 	var lesson models.Lesson
-	result := r.DB.First(&lesson, id)
+	result := r.DB.Model(&models.Lesson{}).
+		Select("lesson.id, lesson.name, lesson.description, lesson.content, lesson.order, lesson.created_at").
+		Joins("INNER JOIN chapter ON chapter.id = lesson.chapter_id").
+		Where("chapter_id = ? and chapter.course_id = ? and id = ?", chapterID, courseID, id).
+		Find(&lesson)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -67,7 +69,7 @@ func (r *LessonRepository) Update(lesson models.Lesson) error {
 		Description: lesson.Description,
 		Content:     lesson.Content,
 		Order:       lesson.Order,
-		ChapterID:   lesson.ChapterID,
+		UpdatedAt:   lesson.UpdatedAt,
 	})
 
 	if result.Error != nil {
@@ -81,8 +83,11 @@ func (r *LessonRepository) Update(lesson models.Lesson) error {
 	return nil
 }
 
-func (r *LessonRepository) Delete(id uint) error {
-	result := r.DB.Delete(&models.Lesson{}, id)
+func (r *LessonRepository) Delete(courseID, chapterID, id uint) error {
+	result := r.DB.
+		Delete(&models.Lesson{}).
+		Joins("INNER JOIN chapter ON chapter.id = lesson.chapter_id").
+		Where("lesson.id = ? AND lesson.chapter_id = ? AND chapter.course_id = ?", id, chapterID, courseID)
 
 	if result.Error != nil {
 		return result.Error

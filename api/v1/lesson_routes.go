@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 	"web/config"
-	"web/models"
 	"web/schemas"
 	"web/services"
 
@@ -77,7 +76,7 @@ func (h *LessonHandler) GetAllLessons(c *gin.Context) {
 		return
 	}
 
-	lessons, err := h.service.GetLessonsByChapterID(uint(chapterId), uint(courseID))
+	lessons, err := h.service.GetLessonsByChapterID(uint(courseID), uint(chapterId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   true,
@@ -107,6 +106,15 @@ func (h *LessonHandler) GetAllLessons(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /courses/{id}/chapters/{chapterId}/lessons/{lessonId} [get]
 func (h *LessonHandler) GetLessonByID(c *gin.Context) {
+	courseIdStr := c.Param("id")
+	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Invalid course ID",
+		})
+		return
+	}
 	chapterIdStr := c.Param("chapterId")
 	chapterId, err := strconv.ParseUint(chapterIdStr, 10, 32)
 	if err != nil {
@@ -127,7 +135,7 @@ func (h *LessonHandler) GetLessonByID(c *gin.Context) {
 		return
 	}
 
-	lesson, err := h.service.GetLessonByID(uint(id))
+	lesson, err := h.service.GetLessonByID(uint(courseId), uint(chapterId), uint(id))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "lesson not found" {
@@ -136,15 +144,6 @@ func (h *LessonHandler) GetLessonByID(c *gin.Context) {
 		c.JSON(status, gin.H{
 			"error":   true,
 			"message": err.Error(),
-		})
-		return
-	}
-
-	// Verify that the lesson belongs to the specified chapter
-	if lesson.ChapterID != uint(chapterId) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   true,
-			"message": "Lesson not found for this chapter",
 		})
 		return
 	}
@@ -185,6 +184,15 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 		})
 		return
 	}
+	courseIdStr := c.Param("id")
+	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Invalid course ID",
+		})
+		return
+	}
 
 	var lessonRequest schemas.LessonRequest
 	if err := c.ShouldBindJSON(&lessonRequest); err != nil {
@@ -194,15 +202,8 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 		})
 		return
 	}
-	lesson := models.Lesson{
-		Name:        lessonRequest.Name,
-		Description: lessonRequest.Description,
-		Content:     lessonRequest.Content,
-		Order:       lessonRequest.Order,
-		ChapterID:   uint(chapterId),
-	}
 
-	id, err := h.service.CreateLesson(lesson)
+	id, err := h.service.CreateLesson(lessonRequest, uint(courseId), uint(chapterId))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
@@ -235,6 +236,15 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 // @Failure 404 {object} map[string]interface{} "Lesson not found"
 // @Router /courses/{id}/chapters/{chapterId}/lessons/{lessonId} [put]
 func (h *LessonHandler) UpdateLesson(c *gin.Context) {
+	courseIdStr := c.Param("id")
+	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Invalid course ID",
+		})
+		return
+	}
 	chapterIdStr := c.Param("chapterId")
 	chapterId, err := strconv.ParseUint(chapterIdStr, 10, 32)
 	if err != nil {
@@ -255,30 +265,8 @@ func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 		return
 	}
 
-	// Verify that the lesson belongs to the specified chapter
-	existingLesson, err := h.service.GetLessonByID(uint(id))
-	if err != nil {
-		status := http.StatusInternalServerError
-		if err.Error() == "lesson not found" {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
-		return
-	}
-
-	if existingLesson.ChapterID != uint(chapterId) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   true,
-			"message": "Lesson not found for this chapter",
-		})
-		return
-	}
-
-	var lesson models.Lesson
-	if err := c.ShouldBindJSON(&lesson); err != nil {
+	var lessonRequest schemas.LessonRequest
+	if err := c.ShouldBindJSON(&lessonRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "Invalid request body",
@@ -286,9 +274,7 @@ func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 		return
 	}
 
-	lesson.ID = uint(id)
-	lesson.ChapterID = uint(chapterId)
-	err = h.service.UpdateLesson(lesson)
+	err = h.service.UpdateLesson(uint(courseId), uint(chapterId), uint(id), lessonRequest)
 	if err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "lesson not found or no changes made" {
@@ -322,6 +308,15 @@ func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /courses/{id}/chapters/{chapterId}/lessons/{lessonId} [delete]
 func (h *LessonHandler) DeleteLesson(c *gin.Context) {
+	courseIdStr := c.Param("id")
+	courseId, err := strconv.ParseUint(courseIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Invalid course ID",
+		})
+		return
+	}
 	chapterIdStr := c.Param("chapterId")
 	chapterId, err := strconv.ParseUint(chapterIdStr, 10, 32)
 	if err != nil {
@@ -342,29 +337,7 @@ func (h *LessonHandler) DeleteLesson(c *gin.Context) {
 		return
 	}
 
-	// Verify that the lesson belongs to the specified chapter
-	lesson, err := h.service.GetLessonByID(uint(id))
-	if err != nil {
-		status := http.StatusInternalServerError
-		if err.Error() == "lesson not found" {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
-		return
-	}
-
-	if lesson.ChapterID != uint(chapterId) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   true,
-			"message": "Lesson not found for this chapter",
-		})
-		return
-	}
-
-	err = h.service.DeleteLesson(uint(id))
+	err = h.service.DeleteLesson(uint(courseId), uint(chapterId), uint(id))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "lesson not found" {

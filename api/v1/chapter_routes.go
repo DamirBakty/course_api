@@ -166,15 +166,7 @@ func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 		return
 	}
 
-	// Set the courseId from the URL path
-	chapter := models.Chapter{
-		CourseID:    uint(courseId),
-		Name:        chapterRequest.Name,
-		Description: chapterRequest.Description,
-		Order:       chapterRequest.Order,
-	}
-
-	id, err := h.service.CreateChapter(chapter)
+	id, err := h.service.CreateChapter(chapterRequest, uint(courseId))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,

@@ -24,10 +24,9 @@ type ChapterRepositoryInterface interface {
 }
 
 type LessonRepositoryInterface interface {
-	GetAll() ([]models.Lesson, error)
-	GetByID(id uint) (models.Lesson, error)
-	GetByChapterID(chapterID uint) ([]models.Lesson, error)
+	GetByID(courseID, chapterID, id uint) (models.Lesson, error)
+	GetByChapterID(chapterID, courseID uint) ([]schemas.LessonResponse, error)
 	Create(lesson models.Lesson) (uint, error)
 	Update(lesson models.Lesson) error
-	Delete(id uint) error
+	Delete(courseID, chapterID, id uint) error
 }

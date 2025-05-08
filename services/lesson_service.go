@@ -2,12 +2,16 @@ package services
 
 import (
 	"errors"
+	"time"
 	"web/models"
 	"web/repos"
+	"web/schemas"
 )
 
 type LessonService struct {
-	repo *repos.LessonRepository
+	repo        *repos.LessonRepository
+	chapterRepo *repos.ChapterRepository
+	courseRepo  *repos.CourseRepository
 }
 
 func NewLessonService(repo *repos.LessonRepository) *LessonService {
@@ -16,18 +20,49 @@ func NewLessonService(repo *repos.LessonRepository) *LessonService {
 	}
 }
 
-func (s *LessonService) GetLessonsByChapterID(chapterID, courseID uint) ([]models.Lesson, error) {
+func (s *LessonService) GetLessonsByChapterID(courseID, chapterID uint) ([]schemas.LessonResponse, error) {
 	if chapterID == 0 {
 		return nil, errors.New("chapter ID is required")
 	}
-	return s.repo.GetByChapterID(chapterID)
+	if courseID == 0 {
+		return nil, errors.New("course ID is required")
+	}
+	return s.repo.GetByChapterID(courseID, chapterID)
 }
 
-func (s *LessonService) GetLessonByID(id uint) (models.Lesson, error) {
-	return s.repo.GetByID(id)
+func (s *LessonService) GetLessonByID(courseID, chapterID, id uint) (schemas.LessonResponse, error) {
+	lesson, err := s.repo.GetByID(courseID, chapterID, id)
+	if err != nil {
+		return schemas.LessonResponse{}, err
+	}
+	lessonResponse := schemas.LessonResponse{
+		ID:          lesson.ID,
+		Name:        lesson.Name,
+		Description: lesson.Description,
+		Content:     lesson.Content,
+		Order:       lesson.Order,
+		CreatedAt:   lesson.CreatedAt.Format(time.RFC3339),
+	}
+	return lessonResponse, nil
 }
 
-func (s *LessonService) CreateLesson(lesson models.Lesson) (uint, error) {
+func (s *LessonService) CreateLesson(lessonRequest schemas.LessonRequest, courseId, chapterId uint) (uint, error) {
+	course, err := s.courseRepo.GetByID(courseId)
+	if err != nil {
+		return 0, err
+	}
+	chapter, err := s.chapterRepo.GetByID(course.ID, chapterId)
+	if err != nil {
+		return 0, err
+	}
+
+	lesson := models.Lesson{
+		Name:        lessonRequest.Name,
+		Description: lessonRequest.Description,
+		Content:     lessonRequest.Content,
+		Order:       lessonRequest.Order,
+		ChapterID:   chapter.ID,
+	}
 	if lesson.Name == "" {
 		return 0, errors.New("lesson name is required")
 	}
@@ -48,26 +83,20 @@ func (s *LessonService) CreateLesson(lesson models.Lesson) (uint, error) {
 	return s.repo.Create(lesson)
 }
 
-func (s *LessonService) UpdateLesson(lesson models.Lesson) error {
-	if lesson.ID == 0 {
-		return errors.New("lesson ID is required")
+func (s *LessonService) UpdateLesson(courseID, chapterID, id uint, lessonRequest schemas.LessonRequest) error {
+	lesson, err := s.repo.GetByID(courseID, chapterID, id)
+	if err != nil {
+		return err
 	}
-
-	if lesson.Name == "" {
-		return errors.New("lesson name is required")
-	}
-
-	if lesson.ChapterID == 0 {
-		return errors.New("chapter ID is required")
-	}
+	lesson.Name = lessonRequest.Name
+	lesson.Description = lessonRequest.Description
+	lesson.Content = lessonRequest.Content
+	lesson.Order = lessonRequest.Order
+	lesson.UpdatedAt = time.Now()
 
 	return s.repo.Update(lesson)
 }
 
-func (s *LessonService) DeleteLesson(id uint) error {
-	if id == 0 {
-		return errors.New("lesson ID is required")
-	}
-
-	return s.repo.Delete(id)
+func (s *LessonService) DeleteLesson(courseID, chapterID, id uint) error {
+	return s.repo.Delete(courseID, chapterID, id)
 }
