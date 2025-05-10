@@ -14,9 +14,11 @@ type LessonService struct {
 	courseRepo  *repos.CourseRepository
 }
 
-func NewLessonService(repo *repos.LessonRepository) *LessonService {
+func NewLessonService(repo *repos.LessonRepository, chapterRepo *repos.ChapterRepository, courseRepo *repos.CourseRepository) *LessonService {
 	return &LessonService{
-		repo: repo,
+		repo:        repo,
+		chapterRepo: chapterRepo,
+		courseRepo:  courseRepo,
 	}
 }
 
@@ -98,5 +100,9 @@ func (s *LessonService) UpdateLesson(courseID, chapterID, id uint, lessonRequest
 }
 
 func (s *LessonService) DeleteLesson(courseID, chapterID, id uint) error {
-	return s.repo.Delete(courseID, chapterID, id)
+	lesson, err := s.repo.GetByID(courseID, chapterID, id)
+	if err != nil {
+		return err
+	}
+	return s.repo.Delete(lesson)
 }

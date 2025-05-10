@@ -50,8 +50,8 @@ func main() {
 
 	// Initialize services
 	courseService := services.NewCourseService(courseRepo)
-	chapterService := services.NewChapterService(chapterRepo)
-	lessonService := services.NewLessonService(lessonRepo)
+	chapterService := services.NewChapterService(chapterRepo, courseRepo)
+	lessonService := services.NewLessonService(lessonRepo, chapterRepo, courseRepo)
 
 	// Initialize router
 	router := gin.Default()

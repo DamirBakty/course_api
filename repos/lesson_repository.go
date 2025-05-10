@@ -41,8 +41,8 @@ func (r *LessonRepository) GetByID(courseID, chapterID, id uint) (models.Lesson,
 	result := r.DB.Model(&models.Lesson{}).
 		Select("lesson.id, lesson.name, lesson.description, lesson.content, lesson.order, lesson.created_at").
 		Joins("INNER JOIN chapter ON chapter.id = lesson.chapter_id").
-		Where("chapter_id = ? and chapter.course_id = ? and id = ?", chapterID, courseID, id).
-		Find(&lesson)
+		Where("chapter_id = ? and chapter.course_id = ? and lesson.id = ?", chapterID, courseID, id).
+		First(&lesson)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -83,18 +83,13 @@ func (r *LessonRepository) Update(lesson models.Lesson) error {
 	return nil
 }
 
-func (r *LessonRepository) Delete(courseID, chapterID, id uint) error {
+func (r *LessonRepository) Delete(lesson models.Lesson) error {
 	result := r.DB.
-		Delete(&models.Lesson{}).
-		Joins("INNER JOIN chapter ON chapter.id = lesson.chapter_id").
-		Where("lesson.id = ? AND lesson.chapter_id = ? AND chapter.course_id = ?", id, chapterID, courseID)
+		Where("id = ?", lesson.ID).
+		Delete(&models.Lesson{})
 
 	if result.Error != nil {
 		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return errors.New("lesson not found")
 	}
 
 	return nil

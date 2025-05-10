@@ -28,5 +28,5 @@ type LessonRepositoryInterface interface {
 	GetByChapterID(chapterID, courseID uint) ([]schemas.LessonResponse, error)
 	Create(lesson models.Lesson) (uint, error)
 	Update(lesson models.Lesson) error
-	Delete(courseID, chapterID, id uint) error
+	Delete(lesson models.Lesson) error
 }

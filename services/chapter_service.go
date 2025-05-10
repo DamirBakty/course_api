@@ -13,9 +13,10 @@ type ChapterService struct {
 	courseRepo *repos.CourseRepository
 }
 
-func NewChapterService(repo *repos.ChapterRepository) *ChapterService {
+func NewChapterService(repo *repos.ChapterRepository, courseRepo *repos.CourseRepository) *ChapterService {
 	return &ChapterService{
-		repo: repo,
+		repo:       repo,
+		courseRepo: courseRepo,
 	}
 }
 

@@ -230,7 +230,7 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Param lessonId path int true "Lesson ID"
-// @Param lesson body models.Lesson true "Lesson data"
+// @Param lesson body schemas.LessonRequest true "Lesson data"
 // @Success 200 {object} map[string]interface{} "Lesson updated successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body or validation error"
 // @Failure 404 {object} map[string]interface{} "Lesson not found"
