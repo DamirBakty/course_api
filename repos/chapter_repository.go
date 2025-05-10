@@ -7,6 +7,15 @@ import (
 	"web/schemas"
 )
 
+type ChapterRepositoryInterface interface {
+	GetByID(id, courseId uint) (models.Chapter, error)
+	GetByIDWithLessonsCount(id uint, courseID uint) (schemas.ChapterResponseWithLessonsCount, error)
+	GetByCourseID(courseID uint) ([]schemas.ChapterResponseWithLessonsCount, error)
+	Create(chapter models.Chapter) (uint, error)
+	Update(chapter models.Chapter) error
+	Delete(id uint) error
+}
+
 var _ ChapterRepositoryInterface = (*ChapterRepository)(nil)
 
 type ChapterRepository struct {

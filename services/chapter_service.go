@@ -8,6 +8,16 @@ import (
 	"web/schemas"
 )
 
+type ChapterServiceInterface interface {
+	GetChapterByID(id, courseId uint) (models.Chapter, error)
+	GetChaptersByCourseID(courseID uint) ([]schemas.ChapterResponseWithLessonsCount, error)
+	CreateChapter(chapterRequest schemas.ChapterRequest, courseID uint) (uint, error)
+	UpdateChapter(chapter models.Chapter) error
+	DeleteChapter(id uint) error
+}
+
+var _ ChapterServiceInterface = (*ChapterService)(nil)
+
 type ChapterService struct {
 	repo       *repos.ChapterRepository
 	courseRepo *repos.CourseRepository

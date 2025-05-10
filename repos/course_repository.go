@@ -8,6 +8,15 @@ import (
 	"web/schemas"
 )
 
+type CourseRepositoryInterface interface {
+	GetAll() ([]schemas.CourseResponseWithChaptersCount, error)
+	GetByID(id uint) (models.Course, error)
+	Create(course models.Course) (models.Course, error)
+	Update(course models.Course, courseRequest schemas.UpdateCourseRequest) (models.Course, error)
+	Delete(id uint) error
+	GetByIDWithChaptersCount(id uint) (schemas.CourseResponseWithChaptersCount, error)
+}
+
 var _ CourseRepositoryInterface = (*CourseRepository)(nil)
 
 type CourseRepository struct {

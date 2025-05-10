@@ -7,6 +7,14 @@ import (
 	"web/schemas"
 )
 
+type LessonRepositoryInterface interface {
+	GetByID(courseID, chapterID, id uint) (models.Lesson, error)
+	GetByChapterID(chapterID, courseID uint) ([]schemas.LessonResponse, error)
+	Create(lesson models.Lesson) (uint, error)
+	Update(lesson models.Lesson) error
+	Delete(id uint) error
+}
+
 var _ LessonRepositoryInterface = (*LessonRepository)(nil)
 
 type LessonRepository struct {
@@ -83,13 +91,15 @@ func (r *LessonRepository) Update(lesson models.Lesson) error {
 	return nil
 }
 
-func (r *LessonRepository) Delete(lesson models.Lesson) error {
-	result := r.DB.
-		Where("id = ?", lesson.ID).
-		Delete(&models.Lesson{})
+func (r *LessonRepository) Delete(id uint) error {
+	result := r.DB.Delete(&models.Lesson{}, id)
 
 	if result.Error != nil {
 		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("lesson not found")
 	}
 
 	return nil

@@ -8,6 +8,14 @@ import (
 	"web/schemas"
 )
 
+type LessonServiceInterface interface {
+	GetLessonByID(id uint) (models.Lesson, error)
+	GetLessonsByChapterID(chapterID, courseID uint) ([]schemas.LessonResponse, error)
+	CreateLesson(lessonRequest schemas.LessonRequest, chapterId uint) (uint, error)
+	UpdateLesson(courseID, chapterID, id uint, lessonRequest schemas.LessonRequest) error
+	DeleteLesson(id uint) error
+}
+
 type LessonService struct {
 	repo        *repos.LessonRepository
 	chapterRepo *repos.ChapterRepository
@@ -104,5 +112,5 @@ func (s *LessonService) DeleteLesson(courseID, chapterID, id uint) error {
 	if err != nil {
 		return err
 	}
-	return s.repo.Delete(lesson)
+	return s.repo.Delete(lesson.ID)
 }

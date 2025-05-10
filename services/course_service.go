@@ -7,6 +7,15 @@ import (
 	"web/schemas"
 )
 
+type CourseServiceInterface interface {
+	GetAllCourses() ([]schemas.CourseResponseWithChaptersCount, error)
+	GetCourseByID(id uint) (models.Course, error)
+	GetCourseByIDWithChapterCount(id uint) (schemas.CourseResponseWithChaptersCount, error)
+	CreateCourse(courseDTO schemas.CreateCourseRequest) (schemas.CourseResponse, error)
+	UpdateCourse(course models.Course, courseRequest schemas.UpdateCourseRequest) (schemas.CourseResponse, error)
+	DeleteCourse(id uint) error
+}
+
 // Ensure CourseService implements CourseServiceInterface
 var _ CourseServiceInterface = (*CourseService)(nil)
 
