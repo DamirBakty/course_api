@@ -14,6 +14,11 @@ type AppConfig struct {
 	DB     *sql.DB
 	GormDB *gorm.DB
 	DbUrl  string
+
+	// Keycloak configuration
+	KeycloakURL      string
+	KeycloakRealm    string
+	KeycloakClientID string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -42,10 +47,18 @@ func LoadConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
+	// Load Keycloak configuration
+	keycloakURL := getEnv("KEYCLOAK_URL", "http://localhost:8081")
+	keycloakRealm := getEnv("KEYCLOAK_REALM", "master")
+	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "course-api")
+
 	return &AppConfig{
-		DB:     sqlDB,
-		GormDB: gormDB,
-		DbUrl:  dbUrl,
+		DB:              sqlDB,
+		GormDB:          gormDB,
+		DbUrl:           dbUrl,
+		KeycloakURL:     keycloakURL,
+		KeycloakRealm:   keycloakRealm,
+		KeycloakClientID: keycloakClientID,
 	}, nil
 }
 

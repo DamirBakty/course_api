@@ -8,6 +8,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 	"os"
 	"path/filepath"
+	"strings"
 	"web/api/v1"
 
 	"web/config"
@@ -22,6 +23,9 @@ import (
 // @description This is a course management API
 // @host localhost:8080
 // @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 
 func main() {
 	log := logrus.New()
@@ -47,11 +51,14 @@ func main() {
 	courseRepo := repos.NewCourseRepository(appConfig.GormDB)
 	chapterRepo := repos.NewChapterRepository(appConfig.GormDB)
 	lessonRepo := repos.NewLessonRepository(appConfig.GormDB)
+	userRepo := repos.NewUserRepository(appConfig.GormDB)
 
 	// Initialize services
 	courseService := services.NewCourseService(courseRepo)
 	chapterService := services.NewChapterService(chapterRepo, courseRepo)
 	lessonService := services.NewLessonService(lessonRepo, chapterRepo, courseRepo)
+	authService := services.NewAuthService(appConfig)
+	userService := services.NewUserService(userRepo)
 
 	// Initialize router
 	router := gin.Default()
@@ -59,14 +66,35 @@ func main() {
 	// Apply middleware
 	router.Use(middleware.ResponseMiddleware())
 
+	// Apply auth middleware to all API routes
+	router.Use(func(c *gin.Context) {
+		// Skip authentication for non-API routes
+		if !strings.HasPrefix(c.Request.URL.Path, "/api/v1") {
+			c.Next()
+			return
+		}
+
+		// Skip authentication for public API routes if needed
+		// if c.Request.URL.Path == "/api/v1/public" {
+		//     c.Next()
+		//     return
+		// }
+
+		// Apply authentication middleware
+		middleware.AuthMiddleware(authService)(c)
+	})
+
 	// Register api
 	courseHandler := v1.NewCourseHandler(appConfig, courseService, chapterService)
 	chapterHandler := v1.NewChapterHandler(appConfig, chapterService)
 	lessonHandler := v1.NewLessonHandler(appConfig, lessonService)
+	userHandler := v1.NewUserHandler(appConfig, userService, authService)
 
+	// Register routes
 	courseHandler.RegisterRoutes(router)
 	chapterHandler.RegisterRoutes(router)
 	lessonHandler.RegisterRoutes(router)
+	userHandler.RegisterRoutes(router)
 
 	// Default route
 	router.GET("/", func(c *gin.Context) {
