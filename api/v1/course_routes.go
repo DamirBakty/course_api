@@ -14,20 +14,23 @@ type CourseHandler struct {
 	app            *config.AppConfig
 	service        *services.CourseService
 	chapterService *services.ChapterService
+	authService    *services.AuthService
 }
 
 // NewCourseHandler creates a new course handler
-func NewCourseHandler(app *config.AppConfig, service *services.CourseService, chapterService *services.ChapterService) *CourseHandler {
+func NewCourseHandler(app *config.AppConfig, service *services.CourseService, chapterService *services.ChapterService, authService *services.AuthService) *CourseHandler {
 	return &CourseHandler{
 		app:            app,
 		service:        service,
 		chapterService: chapterService,
+		authService:    authService,
 	}
 }
 
 // RegisterRoutes registers course api to the router
 func (h *CourseHandler) RegisterRoutes(router *gin.Engine) {
 	courseGroup := router.Group("/api/v1/courses")
+	courseGroup.Use(middleware.AuthMiddleware(h.authService))
 	{
 		courseGroup.GET("", h.GetAllCourses)
 		courseGroup.GET("/:id", h.GetCourseByID)

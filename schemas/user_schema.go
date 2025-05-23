@@ -14,5 +14,6 @@ type UserResponse struct {
 	Username  string    `json:"username" example:"johndoe"`
 	Email     string    `json:"email" example:"john.doe@example.com"`
 	Roles     string    `json:"roles" example:"ROLE_USER,ROLE_ADMIN"`
+	Sub       string    `json:"sub" example:"1234567890"`
 	CreatedAt time.Time `json:"created_at,omitempty" example:"2020-01-01T12:00:00Z"`
 }

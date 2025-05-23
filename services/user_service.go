@@ -1,8 +1,10 @@
 package services
 
 import (
+	"crypto/rand"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 	"web/models"
 	"web/repos"
 	"web/schemas"
@@ -10,6 +12,7 @@ import (
 
 type UserServiceInterface interface {
 	RegisterUser(userDTO schemas.RegisterUserRequest) (schemas.UserResponse, error)
+	ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.UserResponse, error)
 }
 
 var _ UserServiceInterface = (*UserService)(nil)
@@ -39,9 +42,17 @@ func (s *UserService) RegisterUser(userDTO schemas.RegisterUserRequest) (schemas
 	}
 
 	// Check if username already exists
-	_, err := s.repo.GetByUsername(userDTO.Username)
+	user, err := s.repo.GetByUsername(userDTO.Username)
 	if err == nil {
-		return schemas.UserResponse{}, errors.New("username already exists")
+		userResponse := schemas.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			Roles:     user.Roles,
+			CreatedAt: user.CreatedAt,
+		}
+
+		return userResponse, nil
 	} else if err.Error() != "user not found" {
 		return schemas.UserResponse{}, err
 	}
@@ -61,11 +72,75 @@ func (s *UserService) RegisterUser(userDTO schemas.RegisterUserRequest) (schemas
 	}
 
 	// Create user
-	user := models.User{
+	user = models.User{
 		Username: userDTO.Username,
 		Email:    userDTO.Email,
 		Password: string(hashedPassword),
 		Roles:    userDTO.Roles,
+	}
+
+	user, err = s.repo.Create(user)
+	if err != nil {
+		return schemas.UserResponse{}, err
+	}
+
+	userResponse := schemas.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Roles:     user.Roles,
+		CreatedAt: user.CreatedAt,
+	}
+
+	return userResponse, nil
+}
+
+func (s *UserService) ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.UserResponse, error) {
+	if claims.PreferredUsername == "" {
+		return schemas.UserResponse{}, errors.New("username is required")
+	}
+	if claims.Email == "" {
+		return schemas.UserResponse{}, errors.New("email is required")
+	}
+	user, err := s.repo.GetBySub(claims.Sub)
+	if err == nil {
+		userResponse := schemas.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			Roles:     user.Roles,
+			Sub:       user.Sub,
+			CreatedAt: user.CreatedAt,
+		}
+		return userResponse, nil
+	}
+
+	// Extract roles from token
+	roles := "ROLE_USER" // Default role
+	if len(claims.RealmAccess.Roles) > 0 {
+		roles = strings.Join(claims.RealmAccess.Roles, ",")
+	}
+
+	// Generate a random password since we're using token-based auth
+	randomPassword := make([]byte, 32)
+	_, err = rand.Read(randomPassword)
+	if err != nil {
+		return schemas.UserResponse{}, errors.New("failed to generate random password")
+	}
+
+	// Hash the random password
+	hashedPassword, err := bcrypt.GenerateFromPassword(randomPassword, bcrypt.DefaultCost)
+	if err != nil {
+		return schemas.UserResponse{}, errors.New("failed to hash password")
+	}
+
+	// Create user
+	user = models.User{
+		Username: claims.PreferredUsername,
+		Email:    claims.Email,
+		Password: string(hashedPassword),
+		Roles:    roles,
+		Sub:      claims.Sub,
 	}
 
 	user, err = s.repo.Create(user)

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 	"web/config"
+	"web/repos"
 )
 
 // KeycloakClaims represents the claims in a Keycloak JWT token
@@ -24,29 +25,31 @@ type KeycloakClaims struct {
 	ResourceAccess map[string]struct {
 		Roles []string `json:"roles"`
 	} `json:"resource_access"`
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	Name          string `json:"name"`
+	Email             string `json:"email"`
+	EmailVerified     bool   `json:"email_verified"`
+	Name              string `json:"name"`
 	PreferredUsername string `json:"preferred_username"`
+	Sub               string `json:"sub"`
 }
 
 // AuthService handles authentication and authorization with Keycloak
 type AuthService struct {
-	config *config.AppConfig
-	jwksURL string
-	keysCache map[string]interface{}
+	config        *config.AppConfig
+	jwksURL       string
+	keysCache     map[string]interface{}
 	keysCacheTime time.Time
+	userRepo      repos.UserRepositoryInterface
 }
 
-// NewAuthService creates a new AuthService
-func NewAuthService(config *config.AppConfig) *AuthService {
-	jwksURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", 
+func NewAuthService(config *config.AppConfig, userRepo repos.UserRepositoryInterface) *AuthService {
+	jwksURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs",
 		config.KeycloakURL, config.KeycloakRealm)
 
 	return &AuthService{
 		config:    config,
 		jwksURL:   jwksURL,
 		keysCache: make(map[string]interface{}),
+		userRepo:  userRepo,
 	}
 }
 
@@ -216,4 +219,21 @@ func (s *AuthService) HasRole(claims *KeycloakClaims, role string) bool {
 	}
 
 	return false
+}
+
+// ValidateSession checks if a user with the given sub exists in the database
+func (s *AuthService) ValidateSession(sub string) (bool, error) {
+	if sub == "" {
+		return false, errors.New("sub is required")
+	}
+
+	_, err := s.userRepo.GetBySub(sub)
+	if err != nil {
+		if err.Error() == "user not found" {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }

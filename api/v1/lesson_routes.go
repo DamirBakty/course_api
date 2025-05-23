@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"web/config"
+	"web/middleware"
 	"web/schemas"
 	"web/services"
 
@@ -12,15 +13,17 @@ import (
 
 // LessonHandler handles HTTP requests for lessons
 type LessonHandler struct {
-	app     *config.AppConfig
-	service *services.LessonService
+	app         *config.AppConfig
+	service     *services.LessonService
+	authService *services.AuthService
 }
 
 // NewLessonHandler creates a new lesson handler
-func NewLessonHandler(app *config.AppConfig, service *services.LessonService) *LessonHandler {
+func NewLessonHandler(app *config.AppConfig, service *services.LessonService, authService *services.AuthService) *LessonHandler {
 	return &LessonHandler{
-		app:     app,
-		service: service,
+		app:         app,
+		service:     service,
+		authService: authService,
 	}
 }
 
@@ -31,6 +34,7 @@ func (h *LessonHandler) RegisterRoutes(router *gin.Engine) {
 		chapterGroup := courseGroup.Group("/:id/chapters")
 		{
 			lessonGroup := chapterGroup.Group("/:chapterId/lessons")
+			lessonGroup.Use(middleware.AuthMiddleware(h.authService))
 			{
 				lessonGroup.GET("", h.GetAllLessons)
 				lessonGroup.GET("/:lessonId", h.GetLessonByID)

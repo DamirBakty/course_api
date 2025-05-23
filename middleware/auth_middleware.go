@@ -25,11 +25,27 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 			return
 		}
 
+		// Validate the session (check if user exists in the database)
+		if c.Request.URL.Path != "/api/v1/users/login" { // Skip session validation for login endpoint
+			valid, err := authService.ValidateSession(claims.Sub)
+			if err != nil {
+				RespondWithError(c, http.StatusInternalServerError, "Session validation error: "+err.Error())
+				c.Abort()
+				return
+			}
+			if !valid {
+				RespondWithError(c, http.StatusUnauthorized, "Invalid session: user not found")
+				c.Abort()
+				return
+			}
+		}
+
 		// Store the claims in the context for later use
 		c.Set("claims", claims)
 		c.Set("user_id", claims.Subject)
 		c.Set("username", claims.PreferredUsername)
 		c.Set("email", claims.Email)
+		c.Set("sub", claims.Sub)
 
 		c.Next()
 	}

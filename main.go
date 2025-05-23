@@ -57,7 +57,7 @@ func main() {
 	courseService := services.NewCourseService(courseRepo)
 	chapterService := services.NewChapterService(chapterRepo, courseRepo)
 	lessonService := services.NewLessonService(lessonRepo, chapterRepo, courseRepo)
-	authService := services.NewAuthService(appConfig)
+	authService := services.NewAuthService(appConfig, userRepo)
 	userService := services.NewUserService(userRepo)
 
 	// Initialize router
@@ -66,28 +66,21 @@ func main() {
 	// Apply middleware
 	router.Use(middleware.ResponseMiddleware())
 
-	// Apply auth middleware to all API routes
+	// Apply auth middleware to all routes
 	router.Use(func(c *gin.Context) {
-		// Skip authentication for non-API routes
-		if !strings.HasPrefix(c.Request.URL.Path, "/api/v1") {
+		if strings.HasPrefix(c.Request.URL.Path, "/swagger") || c.Request.URL.Path == "/" {
 			c.Next()
 			return
 		}
-
-		// Skip authentication for public API routes if needed
-		// if c.Request.URL.Path == "/api/v1/public" {
-		//     c.Next()
-		//     return
-		// }
 
 		// Apply authentication middleware
 		middleware.AuthMiddleware(authService)(c)
 	})
 
 	// Register api
-	courseHandler := v1.NewCourseHandler(appConfig, courseService, chapterService)
-	chapterHandler := v1.NewChapterHandler(appConfig, chapterService)
-	lessonHandler := v1.NewLessonHandler(appConfig, lessonService)
+	courseHandler := v1.NewCourseHandler(appConfig, courseService, chapterService, authService)
+	chapterHandler := v1.NewChapterHandler(appConfig, chapterService, authService)
+	lessonHandler := v1.NewLessonHandler(appConfig, lessonService, authService)
 	userHandler := v1.NewUserHandler(appConfig, userService, authService)
 
 	// Register routes

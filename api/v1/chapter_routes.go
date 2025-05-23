@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"web/config"
+	"web/middleware"
 	"web/models"
 	"web/schemas"
 	"web/services"
@@ -13,14 +14,16 @@ import (
 )
 
 type ChapterHandler struct {
-	app     *config.AppConfig
-	service *services.ChapterService
+	app         *config.AppConfig
+	service     *services.ChapterService
+	authService *services.AuthService
 }
 
-func NewChapterHandler(app *config.AppConfig, service *services.ChapterService) *ChapterHandler {
+func NewChapterHandler(app *config.AppConfig, service *services.ChapterService, authService *services.AuthService) *ChapterHandler {
 	return &ChapterHandler{
-		app:     app,
-		service: service,
+		app:         app,
+		service:     service,
+		authService: authService,
 	}
 }
 
@@ -28,6 +31,7 @@ func (h *ChapterHandler) RegisterRoutes(router *gin.Engine) {
 	courseGroup := router.Group("/api/v1/courses")
 	{
 		chapterGroup := courseGroup.Group("/:id/chapters")
+		chapterGroup.Use(middleware.AuthMiddleware(h.authService))
 		{
 			chapterGroup.GET("", h.GetAllChapters)
 			chapterGroup.GET("/:chapterId", h.GetChapterByID)
