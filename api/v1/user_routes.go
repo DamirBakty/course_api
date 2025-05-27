@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"web/config"
 	"web/middleware"
+	"web/schemas"
 	"web/services"
 )
 
@@ -23,10 +24,10 @@ func NewUserHandler(app *config.AppConfig, service *services.UserService, authSe
 
 // RegisterRoutes registers user api to the router
 func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
-	userGroup := router.Group("/api/v1/users")
-	userGroup.Use(middleware.AuthMiddleware(h.authService))
+	// Public routes (no authentication required)
+	publicGroup := router.Group("/api/v1/auth")
 	{
-		userGroup.POST("/login", h.Claim)
+		publicGroup.POST("/login", h.Login)
 	}
 }
 
@@ -64,4 +65,32 @@ func (h *UserHandler) Claim(c *gin.Context) {
 	}
 
 	middleware.RespondWithCreated(c, userResponse, "Authorized successfully")
+}
+
+// Login handles POST /api/v1/auth/login
+// @Summary Login with username and password
+// @Description Authenticate with Keycloak and get a JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param login body schemas.LoginRequest true "Login credentials"
+// @Success 200 {object} schemas.LoginResponse "Login successful"
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @Failure 401 {object} map[string]interface{} "Authentication failed"
+// @Router /auth/login [post]
+func (h *UserHandler) Login(c *gin.Context) {
+	var loginRequest schemas.LoginRequest
+	if err := c.ShouldBindJSON(&loginRequest); err != nil {
+		middleware.RespondWithBadRequest(c, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Authenticate with Keycloak
+	loginResponse, err := h.authService.Login(loginRequest.Username, loginRequest.Password)
+	if err != nil {
+		middleware.RespondWithError(c, 401, "Authentication failed: "+err.Error())
+		return
+	}
+
+	middleware.RespondWithSuccess(c, loginResponse, "Login successful")
 }

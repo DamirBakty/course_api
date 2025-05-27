@@ -9,6 +9,17 @@ type RegisterUserRequest struct {
 	Roles    string `json:"roles" binding:"required" example:"ROLE_USER,ROLE_ADMIN"`
 }
 
+type LoginRequest struct {
+	Username string `json:"username" binding:"required" example:"johndoe"`
+	Password string `json:"password" binding:"required" example:"password123"`
+}
+
+type LoginResponse struct {
+	AccessToken string `json:"access_token" example:"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJfT3B2QmJxS0VfdU5NbV..."`
+	TokenType   string `json:"token_type" example:"Bearer"`
+	ExpiresIn   int    `json:"expires_in" example:"300"`
+}
+
 type UserResponse struct {
 	ID        uint      `json:"id,omitempty" example:"1"`
 	Username  string    `json:"username" example:"johndoe"`

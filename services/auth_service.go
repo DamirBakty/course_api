@@ -8,13 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 	"web/config"
 	"web/models"
 	"web/repos"
+	"web/schemas"
 )
 
 // KeycloakClaims represents the claims in a Keycloak JWT token
@@ -251,4 +254,69 @@ func (s *AuthService) GetUserBySub(sub string) (models.User, error) {
 	}
 
 	return s.userRepo.GetBySub(sub)
+}
+
+// Login authenticates a user with Keycloak and returns a JWT token
+func (s *AuthService) Login(username, password string) (*schemas.LoginResponse, error) {
+	if username == "" {
+		return nil, errors.New("username is required")
+	}
+	if password == "" {
+		return nil, errors.New("password is required")
+	}
+
+	// Prepare the request to Keycloak's token endpoint
+	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", 
+		s.config.KeycloakURL, s.config.KeycloakRealm)
+
+	// Create form data
+	formData := url.Values{}
+	formData.Set("grant_type", "password")
+	formData.Set("client_id", s.config.KeycloakClientID)
+	formData.Set("username", username)
+	formData.Set("password", password)
+
+	// Create the request
+	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(formData.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Send the request
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check the response status
+	if resp.StatusCode != http.StatusOK {
+		// Read the error response
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("authentication failed: %s (status code: %d)", string(body), resp.StatusCode)
+	}
+
+	// Parse the response
+	var tokenResponse struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int    `json:"expires_in"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Create the login response
+	loginResponse := &schemas.LoginResponse{
+		AccessToken: tokenResponse.AccessToken,
+		TokenType:   tokenResponse.TokenType,
+		ExpiresIn:   tokenResponse.ExpiresIn,
+	}
+
+	return loginResponse, nil
 }
