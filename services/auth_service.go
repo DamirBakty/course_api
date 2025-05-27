@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 	"web/config"
+	"web/models"
 	"web/repos"
 )
 
@@ -90,6 +91,12 @@ func (s *AuthService) ValidateToken(tokenString string) (*KeycloakClaims, error)
 	claims, ok := token.Claims.(*KeycloakClaims)
 	if !ok {
 		return nil, errors.New("invalid claims")
+	}
+
+	// Validate the issuer
+	expectedIssuerPrefix := fmt.Sprintf("%s/realms/%s", s.config.KeycloakURL, s.config.KeycloakRealm)
+	if claims.Issuer == "" || !strings.HasPrefix(claims.Issuer, expectedIssuerPrefix) {
+		return nil, fmt.Errorf("invalid token issuer: expected issuer to start with %s", expectedIssuerPrefix)
 	}
 
 	return claims, nil
@@ -236,4 +243,12 @@ func (s *AuthService) ValidateSession(sub string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (s *AuthService) GetUserBySub(sub string) (models.User, error) {
+	if sub == "" {
+		return models.User{}, errors.New("sub is required")
+	}
+
+	return s.userRepo.GetBySub(sub)
 }

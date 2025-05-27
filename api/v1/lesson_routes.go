@@ -52,6 +52,7 @@ func (h *LessonHandler) RegisterRoutes(router *gin.Engine) {
 // @Tags lessons
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Success 200 {object} map[string]interface{} "Returns a list of lessons"
@@ -101,6 +102,7 @@ func (h *LessonHandler) GetAllLessons(c *gin.Context) {
 // @Tags lessons
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Param lessonId path int true "Lesson ID"
@@ -164,6 +166,7 @@ func (h *LessonHandler) GetLessonByID(c *gin.Context) {
 // @Tags lessons
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Param lesson body schemas.LessonRequest true "Lesson data"
@@ -231,6 +234,7 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 // @Tags lessons
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Param lessonId path int true "Lesson ID"
@@ -303,6 +307,7 @@ func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 // @Tags lessons
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Param lessonId path int true "Lesson ID"

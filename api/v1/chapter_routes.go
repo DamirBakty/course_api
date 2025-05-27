@@ -48,6 +48,7 @@ func (h *ChapterHandler) RegisterRoutes(router *gin.Engine) {
 // @Tags chapters
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Success 200 {object} map[string]interface{} "Returns a list of chapters"
 // @Failure 400 {object} map[string]interface{} "Invalid course ID"
@@ -86,6 +87,7 @@ func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
 // @Tags chapters
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Success 200 {object} map[string]interface{} "Returns the chapter"
@@ -139,6 +141,7 @@ func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 // @Tags chapters
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapter body schemas.ChapterRequest true "Chapter data"
 // @Success 201 {object} map[string]interface{} "Chapter created successfully"
@@ -194,6 +197,7 @@ func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 // @Tags chapters
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Param chapter body schemas.ChapterRequest true "Chapter data"
@@ -263,6 +267,7 @@ func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
 // @Tags chapters
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param chapterId path int true "Chapter ID"
 // @Success 200 {object} map[string]interface{} "Chapter deleted successfully"

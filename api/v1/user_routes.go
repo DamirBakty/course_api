@@ -7,14 +7,12 @@ import (
 	"web/services"
 )
 
-// UserHandler handles HTTP requests for users
 type UserHandler struct {
 	app         *config.AppConfig
 	service     *services.UserService
 	authService *services.AuthService
 }
 
-// NewUserHandler claims a new user handler
 func NewUserHandler(app *config.AppConfig, service *services.UserService, authService *services.AuthService) *UserHandler {
 	return &UserHandler{
 		app:         app,

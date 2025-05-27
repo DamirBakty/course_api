@@ -44,6 +44,7 @@ func (h *CourseHandler) RegisterRoutes(router *gin.Engine) {
 // @Summary Get all courses
 // @Description Get a list of all courses
 // @Tags courses
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]interface{} "Returns a list of courses"
@@ -65,6 +66,7 @@ func (h *CourseHandler) GetAllCourses(c *gin.Context) {
 // @Tags courses
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Success 200 {object} map[string]interface{} "Returns the course"
 // @Failure 400 {object} map[string]interface{} "Invalid course ID"
@@ -97,6 +99,7 @@ func (h *CourseHandler) GetCourseByID(c *gin.Context) {
 // @Description Create a new course with the provided data
 // @Tags courses
 // @Accept json
+// @Security BearerAuth
 // @Produce json
 // @Param course body schemas.CreateCourseRequest true "Course data"
 // @Success 201 {object} map[string]interface{} "Course created successfully"
@@ -115,6 +118,23 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 		return
 	}
 
+	sub, exists := c.Get("sub")
+	if !exists {
+		middleware.RespondWithBadRequest(c, "User not found in context")
+		return
+	}
+
+	// Get the user by sub
+	user, err := h.authService.GetUserBySub(sub.(string))
+	if err != nil {
+		middleware.RespondWithBadRequest(c, "Failed to get user: "+err.Error())
+		return
+	}
+
+	// Set the created_by field
+	userID := user.ID
+	courseRequest.CreatedBy = &userID
+
 	courseResponse, err := h.service.CreateCourse(courseRequest)
 	if err != nil {
 		middleware.RespondWithBadRequest(c, err.Error())
@@ -130,6 +150,7 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 // @Tags courses
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Param course body schemas.UpdateCourseRequest true "Course data"
 // @Success 200 {object} map[string]interface{} "Course updated successfully"
@@ -180,6 +201,7 @@ func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 // @Tags courses
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "Course ID"
 // @Success 200 {object} map[string]interface{} "Course deleted successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid course ID"

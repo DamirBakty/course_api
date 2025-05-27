@@ -53,6 +53,7 @@ func (s *CourseService) CreateCourse(courseRequest schemas.CreateCourseRequest) 
 	course := models.Course{
 		Name:        courseRequest.Name,
 		Description: courseRequest.Description,
+		CreatedBy:   courseRequest.CreatedBy,
 	}
 	course, err := s.repo.Create(course)
 	if err != nil {
@@ -62,6 +63,7 @@ func (s *CourseService) CreateCourse(courseRequest schemas.CreateCourseRequest) 
 		ID:          course.ID,
 		Name:        course.Name,
 		Description: course.Description,
+		CreatedBy:   course.CreatedBy,
 		CreatedAt:   course.CreatedAt,
 	}
 	return courseResponse, nil
@@ -83,6 +85,7 @@ func (s *CourseService) UpdateCourse(course models.Course, courseRequest schemas
 		ID:          course.ID,
 		Name:        course.Name,
 		Description: course.Description,
+		CreatedBy:   course.CreatedBy,
 		CreatedAt:   course.CreatedAt,
 	}
 	return courseResponse, nil

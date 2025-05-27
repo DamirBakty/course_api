@@ -78,7 +78,7 @@ func (r *CourseRepository) GetAll() ([]schemas.CourseResponseWithChaptersCount, 
 		Group("course_id")
 
 	err := r.DB.Model(&models.Course{}).
-		Select("course.id, course.name, course.description, course.created_at, COALESCE(chapters_count, 0) as chapters_count").
+		Select("course.id, course.name, course.description, course.created_by, course.created_at, COALESCE(chapters_count, 0) as chapters_count").
 		Joins("LEFT JOIN (?) AS chapter_counts ON course.id = chapter_counts.course_id", subQuery).
 		Scan(&courseResponses).Error
 
@@ -112,7 +112,7 @@ func (r *CourseRepository) GetByIDWithChaptersCount(id uint) (schemas.CourseResp
 		Group("course_id")
 
 	err := r.DB.Model(&models.Course{}).
-		Select("course.id, course.name, course.description, course.created_at, COALESCE(chapters_count, 0) as chapters_count").
+		Select("course.id, course.name, course.description, course.created_by, course.created_at, COALESCE(chapters_count, 0) as chapters_count").
 		Joins("LEFT JOIN (?) AS chapter_counts ON course.id = chapter_counts.course_id", subQuery).
 		Where("course.id = ?", id).
 		Scan(&courseResponse).Error
