@@ -28,6 +28,7 @@ func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 	publicGroup := router.Group("/api/v1/auth")
 	{
 		publicGroup.POST("/login", h.Login)
+		publicGroup.POST("/refresh", h.RefreshToken)
 	}
 }
 
@@ -92,5 +93,33 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	middleware.RespondWithSuccess(c, loginResponse, "Login successful")
+ middleware.RespondWithSuccess(c, loginResponse, "Login successful")
+}
+
+// RefreshToken handles POST /api/v1/auth/refresh
+// @Summary Refresh an access token
+// @Description Refresh an access token using a refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param refresh body schemas.RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} schemas.LoginResponse "Token refreshed successfully"
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @Failure 401 {object} map[string]interface{} "Token refresh failed"
+// @Router /auth/refresh [post]
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	var refreshRequest schemas.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&refreshRequest); err != nil {
+		middleware.RespondWithBadRequest(c, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Refresh the token
+	loginResponse, err := h.authService.RefreshToken(refreshRequest.RefreshToken)
+	if err != nil {
+		middleware.RespondWithError(c, 401, "Token refresh failed: "+err.Error())
+		return
+	}
+
+	middleware.RespondWithSuccess(c, loginResponse, "Token refreshed successfully")
 }

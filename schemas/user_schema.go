@@ -15,9 +15,14 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	AccessToken string `json:"access_token" example:"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJfT3B2QmJxS0VfdU5NbV..."`
-	TokenType   string `json:"token_type" example:"Bearer"`
-	ExpiresIn   int    `json:"expires_in" example:"300"`
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJfT3B2QmJxS0VfdU5NbV..."`
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJfT3B2QmJxS0VfdU5NbV..."`
+	TokenType    string `json:"token_type" example:"Bearer"`
+	ExpiresIn    int    `json:"expires_in" example:"300"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required" example:"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJfT3B2QmJxS0VfdU5NbV..."`
 }
 
 type UserResponse struct {
