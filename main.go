@@ -70,7 +70,7 @@ func main() {
 	router.Use(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/swagger") ||
 			c.Request.URL.Path == "/" ||
-			strings.HasPrefix(c.Request.URL.Path, "/api/v1/auth/login") {
+			strings.HasPrefix(c.Request.URL.Path, "/api/v1/auth/") {
 			c.Next()
 			return
 		}
