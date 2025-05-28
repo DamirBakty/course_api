@@ -66,9 +66,11 @@ func main() {
 	// Apply middleware
 	router.Use(middleware.ResponseMiddleware())
 
-	// Apply auth middleware to all routes
+	// Apply auth middleware to all routes except swagger, root, and auth endpoints
 	router.Use(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/swagger") || c.Request.URL.Path == "/" {
+		if strings.HasPrefix(c.Request.URL.Path, "/swagger") ||
+			c.Request.URL.Path == "/" ||
+			strings.HasPrefix(c.Request.URL.Path, "/api/v1/auth/login") {
 			c.Next()
 			return
 		}

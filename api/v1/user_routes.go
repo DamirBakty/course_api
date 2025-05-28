@@ -93,7 +93,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
- middleware.RespondWithSuccess(c, loginResponse, "Login successful")
+	middleware.RespondWithSuccess(c, loginResponse, "Login successful")
 }
 
 // RefreshToken handles POST /api/v1/auth/refresh
@@ -102,6 +102,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Tags auth
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param refresh body schemas.RefreshTokenRequest true "Refresh token"
 // @Success 200 {object} schemas.LoginResponse "Token refreshed successfully"
 // @Failure 400 {object} map[string]interface{} "Validation error"

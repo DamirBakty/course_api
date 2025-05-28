@@ -266,9 +266,9 @@ func (s *AuthService) Login(username, password string) (*schemas.LoginResponse, 
 	}
 
 	// Prepare the request to Keycloak's token endpoint
-	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", 
+	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token",
 		s.config.KeycloakURL, s.config.KeycloakRealm)
-
+	fmt.Println(s.config.KeycloakClientID)
 	// Create form data
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
@@ -330,7 +330,7 @@ func (s *AuthService) RefreshToken(refreshToken string) (*schemas.LoginResponse,
 	}
 
 	// Prepare the request to Keycloak's token endpoint
-	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", 
+	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token",
 		s.config.KeycloakURL, s.config.KeycloakRealm)
 
 	// Create form data
