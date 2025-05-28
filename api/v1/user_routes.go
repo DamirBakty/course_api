@@ -30,6 +30,18 @@ func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 		publicGroup.POST("/login", h.Login)
 		publicGroup.POST("/refresh", h.RefreshToken)
 	}
+
+	// Protected routes (authentication required)
+	protectedGroup := router.Group("/api/v1/users")
+	protectedGroup.Use(middleware.AuthMiddleware(h.authService))
+	{
+		// Admin-only routes
+		adminGroup := protectedGroup.Group("/admin")
+		adminGroup.Use(middleware.RequireRole(h.authService, "admin"))
+		{
+			adminGroup.POST("/create", h.AdminCreateUser)
+		}
+	}
 }
 
 // RegisterUser handles POST /api/v1/users/login
@@ -122,4 +134,34 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 	}
 
 	middleware.RespondWithSuccess(c, loginResponse, "Token refreshed successfully")
+}
+
+// AdminCreateUser handles POST /api/v1/users/admin/create
+// @Summary Create a new user (Admin only)
+// @Description Create a new user in Keycloak and in the local database (Admin only)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user body schemas.AdminCreateUserRequest true "User data"
+// @Success 201 {object} schemas.UserResponse "User created successfully"
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Router /users/admin/create [post]
+func (h *UserHandler) AdminCreateUser(c *gin.Context) {
+	var userRequest schemas.AdminCreateUserRequest
+	if err := c.ShouldBindJSON(&userRequest); err != nil {
+		middleware.RespondWithBadRequest(c, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Create user
+	userResponse, err := h.service.AdminCreateUser(userRequest, h.authService)
+	if err != nil {
+		middleware.RespondWithBadRequest(c, err.Error())
+		return
+	}
+
+	middleware.RespondWithCreated(c, userResponse, "User created successfully")
 }

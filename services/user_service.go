@@ -14,6 +14,7 @@ import (
 type UserServiceInterface interface {
 	RegisterUser(userDTO schemas.RegisterUserRequest) (schemas.UserResponse, error)
 	ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.UserResponse, error)
+	AdminCreateUser(userDTO schemas.AdminCreateUserRequest, authService *AuthService) (schemas.UserInfoResponse, error)
 }
 
 var _ UserServiceInterface = (*UserService)(nil)
@@ -42,7 +43,6 @@ func (s *UserService) RegisterUser(userDTO schemas.RegisterUserRequest) (schemas
 		return schemas.UserResponse{}, errors.New("roles are required")
 	}
 
-	// Check if username already exists
 	user, err := s.repo.GetByUsername(userDTO.Username)
 	if err == nil {
 		userResponse := schemas.UserResponse{
@@ -58,7 +58,6 @@ func (s *UserService) RegisterUser(userDTO schemas.RegisterUserRequest) (schemas
 		return schemas.UserResponse{}, err
 	}
 
-	// Check if email already exists
 	_, err = s.repo.GetByEmail(userDTO.Email)
 	if err == nil {
 		return schemas.UserResponse{}, errors.New("email already exists")
@@ -66,13 +65,11 @@ func (s *UserService) RegisterUser(userDTO schemas.RegisterUserRequest) (schemas
 		return schemas.UserResponse{}, err
 	}
 
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userDTO.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return schemas.UserResponse{}, errors.New("failed to hash password")
 	}
 
-	// Create user
 	user = models.User{
 		Username: userDTO.Username,
 		Email:    userDTO.Email,
@@ -116,26 +113,22 @@ func (s *UserService) ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.Us
 		return userResponse, nil
 	}
 
-	// Extract roles from token
-	roles := "ROLE_USER" // Default role
+	roles := "ROLE_USER"
 	if len(claims.RealmAccess.Roles) > 0 {
 		roles = strings.Join(claims.RealmAccess.Roles, ",")
 	}
 
-	// Generate a random password since we're using token-based auth
 	randomPassword := make([]byte, 32)
 	_, err = rand.Read(randomPassword)
 	if err != nil {
 		return schemas.UserResponse{}, errors.New("failed to generate random password")
 	}
 
-	// Hash the random password
 	hashedPassword, err := bcrypt.GenerateFromPassword(randomPassword, bcrypt.DefaultCost)
 	if err != nil {
 		return schemas.UserResponse{}, errors.New("failed to hash password")
 	}
 
-	// Create user
 	user = models.User{
 		Username: claims.PreferredUsername,
 		Email:    claims.Email,
@@ -156,6 +149,48 @@ func (s *UserService) ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.Us
 		Email:     user.Email,
 		Roles:     user.Roles,
 		CreatedAt: user.CreatedAt,
+	}
+
+	return userResponse, nil
+}
+
+func (s *UserService) AdminCreateUser(userDTO schemas.AdminCreateUserRequest, authService *AuthService) (schemas.UserInfoResponse, error) {
+	if userDTO.Username == "" {
+		return schemas.UserInfoResponse{}, errors.New("username is required")
+	}
+	if userDTO.Email == "" {
+		return schemas.UserInfoResponse{}, errors.New("email is required")
+	}
+	if userDTO.Password == "" {
+		return schemas.UserInfoResponse{}, errors.New("password is required")
+	}
+	if len(userDTO.Roles) == 0 {
+		return schemas.UserInfoResponse{}, errors.New("roles are required")
+	}
+
+	_, err := s.repo.GetByUsername(userDTO.Username)
+	if err == nil {
+		return schemas.UserInfoResponse{}, errors.New("username already exists")
+	} else if err.Error() != "user not found" {
+		return schemas.UserInfoResponse{}, err
+	}
+
+	_, err = s.repo.GetByEmail(userDTO.Email)
+	if err == nil {
+		return schemas.UserInfoResponse{}, errors.New("email already exists")
+	} else if err.Error() != "user not found" {
+		return schemas.UserInfoResponse{}, err
+	}
+
+	err = authService.RegisterUserInKeycloak(userDTO.Username, userDTO.Email, userDTO.Password, userDTO.Roles)
+	if err != nil {
+		return schemas.UserInfoResponse{}, fmt.Errorf("failed to register user in Keycloak: %w", err)
+	}
+
+	userResponse := schemas.UserInfoResponse{
+		Username: userDTO.Username,
+		Email:    userDTO.Email,
+		Roles:    userDTO.Roles,
 	}
 
 	return userResponse, nil

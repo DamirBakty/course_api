@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"encoding/base64"
@@ -20,7 +21,6 @@ import (
 	"web/schemas"
 )
 
-// KeycloakClaims represents the claims in a Keycloak JWT token
 type KeycloakClaims struct {
 	jwt.RegisteredClaims
 	RealmAccess struct {
@@ -36,7 +36,6 @@ type KeycloakClaims struct {
 	Sub               string `json:"sub"`
 }
 
-// AuthService handles authentication and authorization with Keycloak
 type AuthService struct {
 	config        *config.AppConfig
 	jwksURL       string
@@ -57,22 +56,19 @@ func NewAuthService(config *config.AppConfig, userRepo repos.UserRepositoryInter
 	}
 }
 
-// ValidateToken validates a JWT token from Keycloak
 func (s *AuthService) ValidateToken(tokenString string) (*KeycloakClaims, error) {
-	// Parse the token
+
 	token, err := jwt.ParseWithClaims(tokenString, &KeycloakClaims{}, func(token *jwt.Token) (interface{}, error) {
-		// Validate the signing method
+
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		// Get the key ID from the token header
 		kid, ok := token.Header["kid"].(string)
 		if !ok {
 			return nil, errors.New("kid header not found in token")
 		}
 
-		// Get the public key for this kid
 		key, err := s.getPublicKey(kid)
 		if err != nil {
 			return nil, err
@@ -85,18 +81,15 @@ func (s *AuthService) ValidateToken(tokenString string) (*KeycloakClaims, error)
 		return nil, err
 	}
 
-	// Check if the token is valid
 	if !token.Valid {
 		return nil, errors.New("invalid token")
 	}
 
-	// Get the claims
 	claims, ok := token.Claims.(*KeycloakClaims)
 	if !ok {
 		return nil, errors.New("invalid claims")
 	}
 
-	// Validate the issuer
 	expectedIssuerPrefix := fmt.Sprintf("%s/realms/%s", s.config.KeycloakURL, s.config.KeycloakRealm)
 	if claims.Issuer == "" || !strings.HasPrefix(claims.Issuer, expectedIssuerPrefix) {
 		return nil, fmt.Errorf("invalid token issuer: expected issuer to start with %s", expectedIssuerPrefix)
@@ -105,14 +98,12 @@ func (s *AuthService) ValidateToken(tokenString string) (*KeycloakClaims, error)
 	return claims, nil
 }
 
-// ExtractToken extracts the token from the Authorization header
 func (s *AuthService) ExtractToken(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return "", errors.New("authorization header is required")
 	}
 
-	// Check if the Authorization header has the Bearer prefix
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		return "", errors.New("authorization header format must be Bearer {token}")
@@ -121,14 +112,12 @@ func (s *AuthService) ExtractToken(r *http.Request) (string, error) {
 	return parts[1], nil
 }
 
-// getPublicKey gets the public key for the given key ID
 func (s *AuthService) getPublicKey(kid string) (interface{}, error) {
-	// Check if we have the key in cache and if the cache is still valid (1 hour)
+
 	if key, ok := s.keysCache[kid]; ok && time.Since(s.keysCacheTime) < time.Hour {
 		return key, nil
 	}
 
-	// Fetch the JWKS from Keycloak
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -147,7 +136,6 @@ func (s *AuthService) getPublicKey(kid string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to get JWKS: %s", resp.Status)
 	}
 
-	// Parse the JWKS
 	var jwks struct {
 		Keys []struct {
 			Kid string   `json:"kid"`
@@ -164,15 +152,13 @@ func (s *AuthService) getPublicKey(kid string) (interface{}, error) {
 		return nil, err
 	}
 
-	// Find the key with the matching kid
 	for _, key := range jwks.Keys {
 		if key.Kid == kid {
-			// Convert the key to a *rsa.PublicKey
+
 			if key.Kty != "RSA" {
 				return nil, fmt.Errorf("key type %s not supported", key.Kty)
 			}
 
-			// Decode the modulus and exponent
 			n, err := base64.RawURLEncoding.DecodeString(key.N)
 			if err != nil {
 				return nil, err
@@ -183,23 +169,19 @@ func (s *AuthService) getPublicKey(kid string) (interface{}, error) {
 				return nil, err
 			}
 
-			// Convert the modulus to a big int
 			modulus := new(big.Int)
 			modulus.SetBytes(n)
 
-			// Convert the exponent to an int
 			var exponent int
 			for i := 0; i < len(e); i++ {
 				exponent = exponent*256 + int(e[i])
 			}
 
-			// Create the public key
 			publicKey := &rsa.PublicKey{
 				N: modulus,
 				E: exponent,
 			}
 
-			// Cache the key
 			s.keysCache[kid] = publicKey
 			s.keysCacheTime = time.Now()
 
@@ -210,16 +192,14 @@ func (s *AuthService) getPublicKey(kid string) (interface{}, error) {
 	return nil, fmt.Errorf("key with ID %s not found", kid)
 }
 
-// HasRole checks if the user has the specified role
 func (s *AuthService) HasRole(claims *KeycloakClaims, role string) bool {
-	// Check realm roles
+
 	for _, r := range claims.RealmAccess.Roles {
 		if r == role {
 			return true
 		}
 	}
 
-	// Check client roles
 	if clientRoles, ok := claims.ResourceAccess[s.config.KeycloakClientID]; ok {
 		for _, r := range clientRoles.Roles {
 			if r == role {
@@ -231,7 +211,6 @@ func (s *AuthService) HasRole(claims *KeycloakClaims, role string) bool {
 	return false
 }
 
-// ValidateSession checks if a user with the given sub exists in the database
 func (s *AuthService) ValidateSession(sub string) (bool, error) {
 	if sub == "" {
 		return false, errors.New("sub is required")
@@ -260,12 +239,189 @@ func (s *AuthService) CreateUser(user models.User) (models.User, error) {
 	return s.userRepo.Create(user)
 }
 
-// GetUserRepo returns the user repository
+func (s *AuthService) RegisterUserInKeycloak(username, email, password string, roles []string) error {
+
+	tokenURL := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", s.config.KeycloakURL)
+
+	formData := url.Values{}
+	formData.Set("grant_type", "password")
+	formData.Set("client_id", "admin-cli")
+	formData.Set("username", s.config.KeycloakAdminUsername)
+	formData.Set("password", s.config.KeycloakAdminPassword)
+
+	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(formData.Encode()))
+	if err != nil {
+		return fmt.Errorf("failed to create admin token request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send admin token request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("admin authentication failed: %s (status code: %d)", string(body), resp.StatusCode)
+	}
+
+	var tokenResponse struct {
+		AccessToken string `json:"access_token"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return fmt.Errorf("failed to parse admin token response: %w", err)
+	}
+
+	userURL := fmt.Sprintf("%s/admin/realms/%s/users", s.config.KeycloakURL, s.config.KeycloakRealm)
+
+	userData := map[string]interface{}{
+		"username": username,
+		"email":    email,
+		"enabled":  true,
+		"credentials": []map[string]interface{}{
+			{
+				"type":      "password",
+				"value":     password,
+				"temporary": false,
+			},
+		},
+	}
+
+	userDataJSON, err := json.Marshal(userData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user data: %w", err)
+	}
+
+	req, err = http.NewRequest("POST", userURL, bytes.NewBuffer(userDataJSON))
+	if err != nil {
+		return fmt.Errorf("failed to create user creation request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send user creation request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("user creation failed: %s (status code: %d)", string(body), resp.StatusCode)
+	}
+
+	if len(roles) > 0 {
+
+		getUserURL := fmt.Sprintf("%s/admin/realms/%s/users?username=%s", s.config.KeycloakURL, s.config.KeycloakRealm, username)
+
+		req, err = http.NewRequest("GET", getUserURL, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create get user request: %w", err)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
+
+		resp, err = client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to send get user request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("get user failed: %s (status code: %d)", string(body), resp.StatusCode)
+		}
+
+		var users []map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
+			return fmt.Errorf("failed to parse get user response: %w", err)
+		}
+
+		if len(users) == 0 {
+			return fmt.Errorf("user not found after creation")
+		}
+
+		userID := users[0]["id"].(string)
+
+		getRolesURL := fmt.Sprintf("%s/admin/realms/%s/roles", s.config.KeycloakURL, s.config.KeycloakRealm)
+
+		req, err = http.NewRequest("GET", getRolesURL, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create get roles request: %w", err)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
+
+		resp, err = client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to send get roles request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("get roles failed: %s (status code: %d)", string(body), resp.StatusCode)
+		}
+
+		var availableRoles []map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&availableRoles); err != nil {
+			return fmt.Errorf("failed to parse get roles response: %w", err)
+		}
+
+		var rolesToAssign []map[string]interface{}
+		for _, role := range availableRoles {
+			roleName := role["name"].(string)
+			for _, requestedRole := range roles {
+				if roleName == requestedRole {
+					rolesToAssign = append(rolesToAssign, role)
+					break
+				}
+			}
+		}
+
+		if len(rolesToAssign) > 0 {
+
+			assignRolesURL := fmt.Sprintf("%s/admin/realms/%s/users/%s/role-mappings/realm", s.config.KeycloakURL, s.config.KeycloakRealm, userID)
+
+			rolesJSON, err := json.Marshal(rolesToAssign)
+			if err != nil {
+				return fmt.Errorf("failed to marshal roles data: %w", err)
+			}
+
+			req, err = http.NewRequest("POST", assignRolesURL, bytes.NewBuffer(rolesJSON))
+			if err != nil {
+				return fmt.Errorf("failed to create assign roles request: %w", err)
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
+
+			resp, err = client.Do(req)
+			if err != nil {
+				return fmt.Errorf("failed to send assign roles request: %w", err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+				body, _ := io.ReadAll(resp.Body)
+				return fmt.Errorf("assign roles failed: %s (status code: %d)", string(body), resp.StatusCode)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *AuthService) GetUserRepo() repos.UserRepositoryInterface {
 	return s.userRepo
 }
 
-// Login authenticates a user with Keycloak and returns a JWT token
 func (s *AuthService) Login(username, password string, service UserService) (*schemas.LoginResponse, error) {
 	if username == "" {
 		return nil, errors.New("username is required")
@@ -274,27 +430,23 @@ func (s *AuthService) Login(username, password string, service UserService) (*sc
 		return nil, errors.New("password is required")
 	}
 
-	// Prepare the request to Keycloak's token endpoint
 	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token",
 		s.config.KeycloakURL, s.config.KeycloakRealm)
 	fmt.Println(s.config.KeycloakClientID)
-	// Create form data
+
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
 	formData.Set("client_id", s.config.KeycloakClientID)
 	formData.Set("username", username)
 	formData.Set("password", password)
 
-	// Create the request
 	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(formData.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Send the request
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -302,14 +454,12 @@ func (s *AuthService) Login(username, password string, service UserService) (*sc
 	}
 	defer resp.Body.Close()
 
-	// Check the response status
 	if resp.StatusCode != http.StatusOK {
-		// Read the error response
+
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("authentication failed: %s (status code: %d)", string(body), resp.StatusCode)
 	}
 
-	// Parse the response
 	var tokenResponse struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
@@ -331,7 +481,6 @@ func (s *AuthService) Login(username, password string, service UserService) (*sc
 		return nil, fmt.Errorf("failed to validate claims: %w", err)
 	}
 
-	// Create the login response
 	loginResponse := &schemas.LoginResponse{
 		AccessToken:  tokenResponse.AccessToken,
 		RefreshToken: tokenResponse.RefreshToken,
@@ -342,32 +491,26 @@ func (s *AuthService) Login(username, password string, service UserService) (*sc
 	return loginResponse, nil
 }
 
-// RefreshToken refreshes an access token using a refresh token
 func (s *AuthService) RefreshToken(refreshToken string) (*schemas.LoginResponse, error) {
 	if refreshToken == "" {
 		return nil, errors.New("refresh token is required")
 	}
 
-	// Prepare the request to Keycloak's token endpoint
 	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token",
 		s.config.KeycloakURL, s.config.KeycloakRealm)
 
-	// Create form data
 	formData := url.Values{}
 	formData.Set("grant_type", "refresh_token")
 	formData.Set("client_id", s.config.KeycloakClientID)
 	formData.Set("refresh_token", refreshToken)
 
-	// Create the request
 	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(formData.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Send the request
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -375,14 +518,12 @@ func (s *AuthService) RefreshToken(refreshToken string) (*schemas.LoginResponse,
 	}
 	defer resp.Body.Close()
 
-	// Check the response status
 	if resp.StatusCode != http.StatusOK {
-		// Read the error response
+
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("token refresh failed: %s (status code: %d)", string(body), resp.StatusCode)
 	}
 
-	// Parse the response
 	var tokenResponse struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
@@ -394,7 +535,6 @@ func (s *AuthService) RefreshToken(refreshToken string) (*schemas.LoginResponse,
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	// Create the login response
 	loginResponse := &schemas.LoginResponse{
 		AccessToken:  tokenResponse.AccessToken,
 		RefreshToken: tokenResponse.RefreshToken,
