@@ -256,6 +256,15 @@ func (s *AuthService) GetUserBySub(sub string) (models.User, error) {
 	return s.userRepo.GetBySub(sub)
 }
 
+func (s *AuthService) CreateUser(user models.User) (models.User, error) {
+	return s.userRepo.Create(user)
+}
+
+// GetUserRepo returns the user repository
+func (s *AuthService) GetUserRepo() repos.UserRepositoryInterface {
+	return s.userRepo
+}
+
 // Login authenticates a user with Keycloak and returns a JWT token
 func (s *AuthService) Login(username, password string, service UserService) (*schemas.LoginResponse, error) {
 	if username == "" {

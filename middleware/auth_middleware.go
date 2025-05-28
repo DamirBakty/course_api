@@ -34,15 +34,33 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 				return
 			}
 			if !valid {
-				RespondWithError(c, http.StatusUnauthorized, "Invalid session: user not found")
-				c.Abort()
-				return
+				userService := services.NewUserService(authService.GetUserRepo())
+
+				_, createErr := userService.ClaimUserUserFromToken(claims)
+				if createErr != nil {
+					RespondWithError(c, http.StatusInternalServerError, "Failed to create user: "+createErr.Error())
+					c.Abort()
+					return
+				}
+
+				_, getUserErr := authService.GetUserBySub(claims.Sub)
+				if getUserErr != nil {
+					RespondWithError(c, http.StatusInternalServerError, "Failed to get created user: "+getUserErr.Error())
+					c.Abort()
+					return
+				}
 			}
 		}
-
+		user, err := authService.GetUserBySub(claims.Sub)
+		if err != nil {
+			RespondWithError(c, http.StatusUnauthorized, "Invalid session: user not found")
+			c.Abort()
+			return
+		}
 		// Store the claims in the context for later use
 		c.Set("claims", claims)
 		c.Set("user_id", claims.Subject)
+		c.Set("user", user)
 		c.Set("username", claims.PreferredUsername)
 		c.Set("email", claims.Email)
 		c.Set("sub", claims.Sub)
