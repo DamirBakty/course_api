@@ -257,7 +257,7 @@ func (s *AuthService) GetUserBySub(sub string) (models.User, error) {
 }
 
 // Login authenticates a user with Keycloak and returns a JWT token
-func (s *AuthService) Login(username, password string) (*schemas.LoginResponse, error) {
+func (s *AuthService) Login(username, password string, service UserService) (*schemas.LoginResponse, error) {
 	if username == "" {
 		return nil, errors.New("username is required")
 	}
@@ -310,6 +310,16 @@ func (s *AuthService) Login(username, password string) (*schemas.LoginResponse, 
 
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	claims, err := s.ValidateToken(tokenResponse.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate token: %w", err)
+	}
+
+	_, err = service.ClaimUserUserFromToken(claims)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate claims: %w", err)
 	}
 
 	// Create the login response

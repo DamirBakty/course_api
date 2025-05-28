@@ -87,12 +87,11 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	// Authenticate with Keycloak
-	loginResponse, err := h.authService.Login(loginRequest.Username, loginRequest.Password)
+	loginResponse, err := h.authService.Login(loginRequest.Username, loginRequest.Password, *h.service)
 	if err != nil {
 		middleware.RespondWithError(c, 401, "Authentication failed: "+err.Error())
 		return
 	}
-
 	middleware.RespondWithSuccess(c, loginResponse, "Login successful")
 }
 

@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 	"web/models"
@@ -147,6 +148,7 @@ func (s *UserService) ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.Us
 	if err != nil {
 		return schemas.UserResponse{}, err
 	}
+	fmt.Print(user.ID)
 
 	userResponse := schemas.UserResponse{
 		ID:        user.ID,
