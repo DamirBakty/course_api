@@ -98,6 +98,47 @@ func (s *AuthService) ValidateToken(tokenString string) (*KeycloakClaims, error)
 	return claims, nil
 }
 
+func (s *AuthService) IntrospectToken(tokenString string) (bool, error) {
+	if tokenString == "" {
+		return false, errors.New("token is required")
+	}
+
+	introspectionURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token/introspect",
+		s.config.KeycloakURL, s.config.KeycloakRealm)
+	formData := url.Values{}
+	formData.Set("token", tokenString)
+	formData.Set("client_id", s.config.KeycloakClientID)
+
+	req, err := http.NewRequest("POST", introspectionURL, strings.NewReader(formData.Encode()))
+	if err != nil {
+		return false, fmt.Errorf("failed to create introspection request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("failed to send introspection request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return false, fmt.Errorf("token introspection failed: %s (status code: %d)", string(body), resp.StatusCode)
+	}
+
+	var introspectionResponse struct {
+		Active bool `json:"active"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&introspectionResponse); err != nil {
+		return false, fmt.Errorf("failed to parse introspection response: %w", err)
+	}
+
+	return introspectionResponse.Active, nil
+}
+
 func (s *AuthService) ExtractToken(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {

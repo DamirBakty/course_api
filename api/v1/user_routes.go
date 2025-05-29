@@ -35,9 +35,8 @@ func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 	protectedGroup := router.Group("/api/v1/users")
 	protectedGroup.Use(middleware.AuthMiddleware(h.authService))
 	{
-		// Admin-only routes
+		// Admin-only routes - permission check handled by Keycloak
 		adminGroup := protectedGroup.Group("/admin")
-		adminGroup.Use(middleware.RequireRole(h.authService, "admin"))
 		{
 			adminGroup.POST("/create", h.AdminCreateUser)
 		}

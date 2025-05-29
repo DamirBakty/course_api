@@ -168,21 +168,7 @@ func (s *UserService) AdminCreateUser(userDTO schemas.AdminCreateUserRequest, au
 		return schemas.UserInfoResponse{}, errors.New("roles are required")
 	}
 
-	_, err := s.repo.GetByUsername(userDTO.Username)
-	if err == nil {
-		return schemas.UserInfoResponse{}, errors.New("username already exists")
-	} else if err.Error() != "user not found" {
-		return schemas.UserInfoResponse{}, err
-	}
-
-	_, err = s.repo.GetByEmail(userDTO.Email)
-	if err == nil {
-		return schemas.UserInfoResponse{}, errors.New("email already exists")
-	} else if err.Error() != "user not found" {
-		return schemas.UserInfoResponse{}, err
-	}
-
-	err = authService.RegisterUserInKeycloak(userDTO.Username, userDTO.Email, userDTO.Password, userDTO.Roles)
+	err := authService.RegisterUserInKeycloak(userDTO.Username, userDTO.Email, userDTO.Password, userDTO.Roles)
 	if err != nil {
 		return schemas.UserInfoResponse{}, fmt.Errorf("failed to register user in Keycloak: %w", err)
 	}

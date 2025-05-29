@@ -17,10 +17,23 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 			return
 		}
 
-		// Validate the token
+		// Validate the token locally
 		claims, err := authService.ValidateToken(token)
 		if err != nil {
 			RespondWithError(c, http.StatusUnauthorized, "Invalid token: "+err.Error())
+			c.Abort()
+			return
+		}
+
+		// Check with Keycloak if the token is still valid (not revoked or blocked)
+		active, err := authService.IntrospectToken(token)
+		if err != nil {
+			RespondWithError(c, http.StatusUnauthorized, "Token validation failed: "+err.Error())
+			c.Abort()
+			return
+		}
+		if !active {
+			RespondWithError(c, http.StatusUnauthorized, "Token is no longer active")
 			c.Abort()
 			return
 		}
