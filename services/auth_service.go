@@ -108,6 +108,7 @@ func (s *AuthService) IntrospectToken(tokenString string) (bool, error) {
 	formData := url.Values{}
 	formData.Set("token", tokenString)
 	formData.Set("client_id", s.config.KeycloakClientID)
+	formData.Set("client_secret", s.config.KeycloakClientSecret)
 
 	req, err := http.NewRequest("POST", introspectionURL, strings.NewReader(formData.Encode()))
 	if err != nil {
@@ -478,6 +479,7 @@ func (s *AuthService) Login(username, password string, service UserService) (*sc
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
 	formData.Set("client_id", s.config.KeycloakClientID)
+	formData.Set("client_secret", s.config.KeycloakClientSecret)
 	formData.Set("username", username)
 	formData.Set("password", password)
 
@@ -543,6 +545,7 @@ func (s *AuthService) RefreshToken(refreshToken string) (*schemas.LoginResponse,
 	formData := url.Values{}
 	formData.Set("grant_type", "refresh_token")
 	formData.Set("client_id", s.config.KeycloakClientID)
+	formData.Set("client_secret", s.config.KeycloakClientSecret)
 	formData.Set("refresh_token", refreshToken)
 
 	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(formData.Encode()))

@@ -19,6 +19,7 @@ type AppConfig struct {
 	KeycloakURL           string
 	KeycloakRealm         string
 	KeycloakClientID      string
+	KeycloakClientSecret  string
 	KeycloakAdminUsername string
 	KeycloakAdminPassword string
 }
@@ -53,6 +54,7 @@ func LoadConfig() (*AppConfig, error) {
 	keycloakURL := getEnv("KEYCLOAK_URL", "http://localhost:8081")
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "master")
 	keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", "course-api")
+	keycloakClientSecret := getEnv("KEYCLOAK_CLIENT_SECRET", "")
 	keycloakAdminUsername := getEnv("KC_ADMIN", "admin")
 	keycloakAdminPassword := getEnv("KC_ADMIN_PASSWORD", "admin")
 
@@ -63,6 +65,7 @@ func LoadConfig() (*AppConfig, error) {
 		KeycloakURL:           keycloakURL,
 		KeycloakRealm:         keycloakRealm,
 		KeycloakClientID:      keycloakClientID,
+		KeycloakClientSecret:  keycloakClientSecret,
 		KeycloakAdminUsername: keycloakAdminUsername,
 		KeycloakAdminPassword: keycloakAdminPassword,
 	}, nil
