@@ -46,3 +46,13 @@ type UserInfoResponse struct {
 	Email    string   `json:"email" example:"john.doe@example.com"`
 	Roles    []string `json:"roles" example:"ROLE_USER,ROLE_ADMIN"`
 }
+
+type UpdateUserRequest struct {
+	Username string `json:"username" binding:"required" example:"johndoe"`
+	Email    string `json:"email" binding:"required,email" example:"john.doe@example.com"`
+}
+
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required" example:"oldpassword123"`
+	NewPassword     string `json:"new_password" binding:"required,min=8" example:"newpassword123"`
+}

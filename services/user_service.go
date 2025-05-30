@@ -15,6 +15,8 @@ type UserServiceInterface interface {
 	RegisterUser(userDTO schemas.RegisterUserRequest) (schemas.UserResponse, error)
 	ClaimUserUserFromToken(claims *KeycloakClaims) (schemas.UserResponse, error)
 	AdminCreateUser(userDTO schemas.AdminCreateUserRequest, authService *AuthService) (schemas.UserInfoResponse, error)
+	UpdateUser(userID uint, userDTO schemas.UpdateUserRequest) (schemas.UserResponse, error)
+	UpdatePassword(userID uint, passwordDTO schemas.UpdatePasswordRequest) error
 }
 
 var _ UserServiceInterface = (*UserService)(nil)
@@ -180,4 +182,75 @@ func (s *UserService) AdminCreateUser(userDTO schemas.AdminCreateUserRequest, au
 	}
 
 	return userResponse, nil
+}
+
+func (s *UserService) UpdateUser(userID uint, userDTO schemas.UpdateUserRequest) (schemas.UserResponse, error) {
+	if userDTO.Username == "" {
+		return schemas.UserResponse{}, errors.New("username is required")
+	}
+	if userDTO.Email == "" {
+		return schemas.UserResponse{}, errors.New("email is required")
+	}
+
+	existingUser, err := s.repo.GetByUsername(userDTO.Username)
+	if err == nil && existingUser.ID != userID {
+		return schemas.UserResponse{}, errors.New("username already exists")
+	} else if err != nil && err.Error() != "user not found" {
+		return schemas.UserResponse{}, err
+	}
+
+	existingUser, err = s.repo.GetByEmail(userDTO.Email)
+	if err == nil && existingUser.ID != userID {
+		return schemas.UserResponse{}, errors.New("email already exists")
+	} else if err != nil && err.Error() != "user not found" {
+		return schemas.UserResponse{}, err
+	}
+
+	var user models.User
+	user.ID = userID
+	user.Username = userDTO.Username
+	user.Email = userDTO.Email
+
+	updatedUser, err := s.repo.Update(user)
+	if err != nil {
+		return schemas.UserResponse{}, err
+	}
+
+	userResponse := schemas.UserResponse{
+		ID:        updatedUser.ID,
+		Username:  updatedUser.Username,
+		Email:     updatedUser.Email,
+		Roles:     updatedUser.Roles,
+		Sub:       updatedUser.Sub,
+		CreatedAt: updatedUser.CreatedAt,
+	}
+
+	return userResponse, nil
+}
+
+func (s *UserService) UpdatePassword(userID uint, passwordDTO schemas.UpdatePasswordRequest) error {
+	if passwordDTO.CurrentPassword == "" {
+		return errors.New("current password is required")
+	}
+	if passwordDTO.NewPassword == "" {
+		return errors.New("new password is required")
+	}
+	if len(passwordDTO.NewPassword) < 8 {
+		return errors.New("new password must be at least 8 characters")
+	}
+
+	var user models.User
+	user.ID = userID
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordDTO.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("failed to hash password")
+	}
+
+	err = s.repo.UpdatePassword(userID, string(hashedPassword))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

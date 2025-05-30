@@ -11,6 +11,8 @@ type UserRepositoryInterface interface {
 	GetByUsername(username string) (models.User, error)
 	GetByEmail(email string) (models.User, error)
 	GetBySub(sub string) (models.User, error)
+	Update(user models.User) (models.User, error)
+	UpdatePassword(userID uint, hashedPassword string) error
 }
 
 var _ UserRepositoryInterface = (*UserRepository)(nil)
@@ -72,4 +74,26 @@ func (r *UserRepository) GetByEmail(email string) (models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (r *UserRepository) Update(user models.User) (models.User, error) {
+	result := r.DB.Model(&user).Updates(map[string]interface{}{
+		"username":   user.Username,
+		"email":      user.Email,
+		"updated_at": user.UpdatedAt,
+	})
+
+	if result.Error != nil {
+		return models.User{}, result.Error
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) UpdatePassword(userID uint, hashedPassword string) error {
+	result := r.DB.Model(&models.User{}).Where("id = ?", userID).Update("password", hashedPassword)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
 }

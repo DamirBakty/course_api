@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"web/config"
 	"web/middleware"
+	"web/models"
 	"web/schemas"
 	"web/services"
 )
@@ -35,6 +36,10 @@ func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 	protectedGroup := router.Group("/api/v1/users")
 	protectedGroup.Use(middleware.AuthMiddleware(h.authService))
 	{
+		// User routes
+		protectedGroup.PUT("/update", h.UpdateUser)
+		protectedGroup.PUT("/change-password", h.UpdatePassword)
+
 		// Admin-only routes - permission check handled by Keycloak
 		adminGroup := protectedGroup.Group("/admin")
 		{
@@ -163,4 +168,86 @@ func (h *UserHandler) AdminCreateUser(c *gin.Context) {
 	}
 
 	middleware.RespondWithCreated(c, userResponse, "User created successfully")
+}
+
+// UpdateUser handles PUT /api/v1/users/update
+// @Summary Update user data
+// @Description Update user's username and email
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user body schemas.UpdateUserRequest true "User data to update"
+// @Success 200 {object} schemas.UserResponse "User updated successfully"
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /users/update [put]
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	var updateRequest schemas.UpdateUserRequest
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
+		middleware.RespondWithBadRequest(c, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Get the current user from context (set by AuthMiddleware)
+	userObj, exists := c.Get("user")
+	if !exists {
+		middleware.RespondWithError(c, 401, "Authentication required")
+		return
+	}
+
+	currentUser, ok := userObj.(models.User)
+	if !ok {
+		middleware.RespondWithError(c, 500, "Invalid user type")
+		return
+	}
+
+	// Update user
+	userResponse, err := h.service.UpdateUser(currentUser.ID, updateRequest)
+	if err != nil {
+		middleware.RespondWithBadRequest(c, err.Error())
+		return
+	}
+
+	middleware.RespondWithSuccess(c, userResponse, "User updated successfully")
+}
+
+// UpdatePassword handles PUT /api/v1/users/change-password
+// @Summary Update user password
+// @Description Update user's password
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param password body schemas.UpdatePasswordRequest true "Password data"
+// @Success 200 {object} map[string]interface{} "Password updated successfully"
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /users/change-password [put]
+func (h *UserHandler) UpdatePassword(c *gin.Context) {
+	var passwordRequest schemas.UpdatePasswordRequest
+	if err := c.ShouldBindJSON(&passwordRequest); err != nil {
+		middleware.RespondWithBadRequest(c, "Invalid request body: "+err.Error())
+		return
+	}
+
+	userObj, exists := c.Get("user")
+	if !exists {
+		middleware.RespondWithError(c, 401, "Authentication required")
+		return
+	}
+
+	currentUser, ok := userObj.(models.User)
+	if !ok {
+		middleware.RespondWithError(c, 500, "Invalid user type")
+		return
+	}
+
+	err := h.service.UpdatePassword(currentUser.ID, passwordRequest)
+	if err != nil {
+		middleware.RespondWithBadRequest(c, err.Error())
+		return
+	}
+
+	middleware.RespondWithSuccess(c, nil, "Password updated successfully")
 }
