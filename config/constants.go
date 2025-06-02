@@ -22,6 +22,13 @@ type AppConfig struct {
 	KeycloakClientSecret  string
 	KeycloakAdminUsername string
 	KeycloakAdminPassword string
+
+	// MinIO configuration
+	MinioEndpoint  string
+	MinioAccessKey string
+	MinioSecretKey string
+	MinioBucket    string
+	MinioUseSSL    bool
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -58,6 +65,13 @@ func LoadConfig() (*AppConfig, error) {
 	keycloakAdminUsername := getEnv("KC_ADMIN", "admin")
 	keycloakAdminPassword := getEnv("KC_ADMIN_PASSWORD", "admin")
 
+	// Load MinIO configuration
+	minioEndpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
+	minioAccessKey := getEnv("MINIO_ACCESS_KEY", "minioadmin")
+	minioSecretKey := getEnv("MINIO_SECRET_KEY", "minioadmin")
+	minioBucket := getEnv("MINIO_BUCKET", "attachments")
+	minioUseSSL := getEnv("MINIO_USE_SSL", "false") == "true"
+
 	return &AppConfig{
 		DB:                    sqlDB,
 		GormDB:                gormDB,
@@ -68,6 +82,11 @@ func LoadConfig() (*AppConfig, error) {
 		KeycloakClientSecret:  keycloakClientSecret,
 		KeycloakAdminUsername: keycloakAdminUsername,
 		KeycloakAdminPassword: keycloakAdminPassword,
+		MinioEndpoint:         minioEndpoint,
+		MinioAccessKey:        minioAccessKey,
+		MinioSecretKey:        minioSecretKey,
+		MinioBucket:           minioBucket,
+		MinioUseSSL:           minioUseSSL,
 	}, nil
 }
 

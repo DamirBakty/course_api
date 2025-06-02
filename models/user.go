@@ -14,7 +14,7 @@ type User struct {
 	Username  string         `gorm:"type:varchar(255);not null;uniqueIndex" json:"username" example:"johndoe"`
 	Email     string         `gorm:"type:varchar(255);not null;uniqueIndex" json:"email" example:"john.doe@example.com"`
 	Password  string         `gorm:"type:varchar(255);not null" json:"-"` // Password is not exposed in JSON
-	Roles     string         `gorm:"type:varchar(255);not null" json:"roles" example:"ROLE_USER,ROLE_ADMIN"`
+	Roles     string         `gorm:"type:varchar(255);not null" json:"roles" example:"user,admin"`
 	CreatedAt time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"created_at,omitempty"`
 	UpdatedAt time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at,omitempty"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

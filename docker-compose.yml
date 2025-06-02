@@ -41,26 +41,21 @@ services:
     ports:
       - "8081:8080"
 
-#  directus:
-#    image: directus/directus:latest
-#    ports:
-#      - "8055:8055"
-#    environment:
-#      KEY: 'any-random-string'
-#      SECRET: 'any-random-string'
-#      DB_CLIENT: 'pg'
-#      DB_HOST: keycloak_db
-#      DB_PORT: "5432"
-#      DB_USER: ${KC_DB_USERNAME}
-#      DB_DATABASE: ${KC_DB_URL_DATABASE}
-#      DB_PASSWORD: ${KC_DB_PASSWORD}
-#      ADMIN_EMAIL: 'admin@example.com'
-#      ADMIN_PASSWORD: 'password'
-#    volumes:
-#      - ./uploads:/directus/uploads
-#    depends_on:
-#      - keycloak_postgres
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
 
 
 volumes:
   keycloak_postgres_data: { }
+  minio-data: { }

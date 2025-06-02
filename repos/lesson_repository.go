@@ -2,6 +2,7 @@ package repos
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"web/models"
 	"web/schemas"
@@ -46,6 +47,7 @@ func (r *LessonRepository) GetByChapterID(courseID, chapterID uint) ([]schemas.L
 
 func (r *LessonRepository) GetByID(courseID, chapterID, id uint) (models.Lesson, error) {
 	var lesson models.Lesson
+	fmt.Println(courseID, chapterID, id)
 	result := r.DB.Model(&models.Lesson{}).
 		Select("lesson.id, lesson.name, lesson.description, lesson.content, lesson.order, lesson.created_at").
 		Joins("INNER JOIN chapter ON chapter.id = lesson.chapter_id").

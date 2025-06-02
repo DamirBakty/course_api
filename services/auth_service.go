@@ -474,7 +474,6 @@ func (s *AuthService) Login(username, password string, service UserService) (*sc
 
 	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token",
 		s.config.KeycloakURL, s.config.KeycloakRealm)
-	fmt.Println(s.config.KeycloakClientID)
 
 	formData := url.Values{}
 	formData.Set("grant_type", "password")

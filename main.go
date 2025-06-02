@@ -52,6 +52,7 @@ func main() {
 	chapterRepo := repos.NewChapterRepository(appConfig.GormDB)
 	lessonRepo := repos.NewLessonRepository(appConfig.GormDB)
 	userRepo := repos.NewUserRepository(appConfig.GormDB)
+	attachmentRepo := repos.NewAttachmentRepository(appConfig.GormDB)
 
 	// Initialize services
 	courseService := services.NewCourseService(courseRepo)
@@ -59,6 +60,12 @@ func main() {
 	lessonService := services.NewLessonService(lessonRepo, chapterRepo, courseRepo)
 	authService := services.NewAuthService(appConfig, userRepo)
 	userService := services.NewUserService(userRepo)
+
+	// Initialize attachment service
+	attachmentService, err := services.NewAttachmentService(appConfig, attachmentRepo, lessonRepo)
+	if err != nil {
+		log.Fatalf("Failed to initialize attachment service: %v", err)
+	}
 
 	// Initialize router
 	router := gin.Default()
@@ -84,12 +91,14 @@ func main() {
 	chapterHandler := v1.NewChapterHandler(appConfig, chapterService, authService)
 	lessonHandler := v1.NewLessonHandler(appConfig, lessonService, authService)
 	userHandler := v1.NewUserHandler(appConfig, userService, authService)
+	attachmentHandler := v1.NewAttachmentHandler(appConfig, attachmentService, authService)
 
 	// Register routes
 	courseHandler.RegisterRoutes(router)
 	chapterHandler.RegisterRoutes(router)
 	lessonHandler.RegisterRoutes(router)
 	userHandler.RegisterRoutes(router)
+	attachmentHandler.RegisterRoutes(router)
 
 	// Default route
 	router.GET("/", func(c *gin.Context) {
