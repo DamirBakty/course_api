@@ -17,6 +17,8 @@ type Lesson struct {
 	Order       int            `gorm:"not null" json:"order" example:"1"`
 	ChapterID   uint           `gorm:"not null" json:"chapter_id,omitempty" example:"1"`
 	Chapter     Chapter        `gorm:"foreignKey:ChapterID" json:"chapter,omitempty"`
+	CreatedBy   *uint          `gorm:"column:created_by" json:"created_by,omitempty"`
+	Creator     *User          `gorm:"foreignKey:CreatedBy" json:"creator,omitempty"`
 	CreatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"created_at,omitempty"`
 	UpdatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at,omitempty"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

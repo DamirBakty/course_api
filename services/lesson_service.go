@@ -9,11 +9,11 @@ import (
 )
 
 type LessonServiceInterface interface {
-	GetLessonByID(id uint) (models.Lesson, error)
-	GetLessonsByChapterID(chapterID, courseID uint) ([]schemas.LessonResponse, error)
-	CreateLesson(lessonRequest schemas.LessonRequest, chapterId uint) (uint, error)
+	GetLessonByID(courseID, chapterID, id uint) (schemas.LessonResponse, error)
+	GetLessonsByChapterID(courseID, chapterID uint) ([]schemas.LessonResponse, error)
+	CreateLesson(lessonRequest schemas.LessonRequest, courseId, chapterId uint) (uint, error)
 	UpdateLesson(courseID, chapterID, id uint, lessonRequest schemas.LessonRequest) error
-	DeleteLesson(id uint) error
+	DeleteLesson(courseID, chapterID, id uint) error
 }
 
 type LessonService struct {
@@ -72,6 +72,7 @@ func (s *LessonService) CreateLesson(lessonRequest schemas.LessonRequest, course
 		Content:     lessonRequest.Content,
 		Order:       lessonRequest.Order,
 		ChapterID:   chapter.ID,
+		CreatedBy:   lessonRequest.CreatedBy,
 	}
 	if lesson.Name == "" {
 		return 0, errors.New("lesson name is required")

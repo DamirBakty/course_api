@@ -210,6 +210,29 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 		return
 	}
 
+	sub, exists := c.Get("sub")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "User not found in context",
+		})
+		return
+	}
+
+	// Get the user by sub
+	user, err := h.authService.GetUserBySub(sub.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Failed to get user: " + err.Error(),
+		})
+		return
+	}
+
+	// Set the created_by field
+	userID := user.ID
+	lessonRequest.CreatedBy = &userID
+
 	id, err := h.service.CreateLesson(lessonRequest, uint(courseId), uint(chapterId))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

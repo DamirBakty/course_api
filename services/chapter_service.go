@@ -55,6 +55,7 @@ func (s *ChapterService) CreateChapter(chapterRequest schemas.ChapterRequest, co
 		Description: chapterRequest.Description,
 		Order:       chapterRequest.Order,
 		CourseID:    course.ID,
+		CreatedBy:   chapterRequest.CreatedBy,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
